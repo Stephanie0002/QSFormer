@@ -1,0 +1,25 @@
+# 忽略 配置缓存 文件
+*__pycache__*
+.vscode/
+build/
+
+# 忽略 生成 文件
+logs/
+saved_models/
+saved_results/
+logs
+saved_models
+saved_results
+*.so
+
+# 忽略 数据 文件
+DG_data/
+figures/
+processed_data/
+DG_data
+processed_data
+
+# 忽略 日志 文件
+*-log.txt
+log.*
+*.xlsx
