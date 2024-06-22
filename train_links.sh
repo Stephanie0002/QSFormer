@@ -1,7 +1,7 @@
 # !/bin/bash
 
 # Define the data lists for each method
-declare -a data_list_method1=("wikipedia" "reddit" "mooc" "lastfm" "myket" "enron" "SocialEvo" "uci" "Flights")
+declare -a data_list_method1=("wikipedia" "reddit" "mooc" "lastfm" "myket" "enron" "SocialEvo" "uci" "Flights" "CanParl")
 # declare -a data_dyg=("CanParl" "USLegis" "UNtrade" "UNvote" "Contacts")  # List of data values for DyGFormer
 
 # Read the gpu and method from command-line arguments
@@ -17,8 +17,11 @@ data_list=("${data_list_method1[@]}")
 
 # Iterate over the data list
 for data in "${data_list[@]}"; do
-    # Run the command with the provided gpu, method, and current data
-    cmd="CUDA_VISIBLE_DEVICES=$gpu python train_link_prediction.py --num_runs 1 --dataset_name $data --model_name $method --load_best_configs"
-    echo "$cmd"
-    eval "$cmd"
+    dir_to_check="logs/$method/$data/${method}_seed0"
+    if [ ! -d "$dir_to_check" ]; then
+        # Run the command with the provided gpu, method, and current data
+        cmd="CUDA_VISIBLE_DEVICES=$gpu python train_link_prediction.py --num_runs 1 --dataset_name $data --model_name $method --load_best_configs"
+        echo "$cmd"
+        eval "$cmd"
+    fi
 done

@@ -7,6 +7,7 @@ import warnings
 import json
 import torch.nn as nn
 
+from FastDygForm.models.RepeatMixer import RepeatMixer
 from models.CrossFormer import CrossFormer
 from models.EnFormer import EnFormer
 from models.FastFormer import FastFormer
@@ -18,9 +19,9 @@ from models.TCL import TCL
 from models.GraphMixer import GraphMixer
 from models.DyGFormer import DyGFormer
 from models.TpprFormer import TpprFormer
-from models.modules import MergeLayer
+from models.modules import MergeLayer, MergeSingleLayer
 from utils.utils import set_random_seed, convert_to_gpu, get_parameter_sizes, NegativeEdgeSampler
-from utils.new_neighbor_sampler import get_neighbor_sampler
+from utils.new_neighbor_sampler import get_historical_neighbor_sampler, get_neighbor_sampler
 from evaluate_models_utils import evaluate_model_link_prediction, evaluate_edge_bank_link_prediction
 from utils.DataLoader import get_idx_data_loader, get_link_prediction_data
 from utils.EarlyStopping import EarlyStopping
@@ -40,7 +41,12 @@ if __name__ == "__main__":
     # initialize validation and test neighbor sampler to retrieve temporal graph
     full_neighbor_sampler = get_neighbor_sampler(model_name=args.model_name, data=full_data, sample_neighbor_strategy=args.sample_neighbor_strategy,
                                                  time_scaling_factor=args.time_scaling_factor, seed=1, dataset_type='full')
-
+    if args.model_name == 'RepeatMixer':
+        full_edge_neighbor_sampler = get_historical_neighbor_sampler(data=full_data,
+                                                                     sample_neighbor_strategy=args.sample_neighbor_strategy,
+                                                                     time_scaling_factor=args.time_scaling_factor, seed=1)
+    else:
+        full_edge_neighbor_sampler = None
     # initialize negative samplers, set seeds for validation and testing so negatives are the same across different runs
     # in the inductive setting, negatives are sampled only amongst other new nodes
     if args.negative_sample_strategy != 'random':
@@ -132,6 +138,13 @@ if __name__ == "__main__":
             elif args.model_name == 'GraphMixer':
                 dynamic_backbone = GraphMixer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
                                               time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors, num_layers=args.num_layers, dropout=args.dropout, device=args.device)
+            elif args.model_name == 'RepeatMixer':
+                dynamic_backbone = RepeatMixer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features,
+                                             neighbor_sampler=full_neighbor_sampler,
+                                             high_order=args.high_order,
+                                             edge_neighbor_sampler=full_edge_neighbor_sampler,
+                                             time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors,
+                                             num_layers=args.num_layers, dropout=args.dropout, device=args.device)
             elif args.model_name == 'DyGFormer':
                 dynamic_backbone = DyGFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
                                              time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
@@ -167,8 +180,12 @@ if __name__ == "__main__":
                                             hops = args.num_hops)
             else:
                 raise ValueError(f"Wrong value for model_name {args.model_name}!")
-            link_predictor = MergeLayer(input_dim1=node_raw_features.shape[1], input_dim2=node_raw_features.shape[1],
-                                        hidden_dim=node_raw_features.shape[1], output_dim=1)
+            if args.model_name == 'RepeatMixer':
+                link_predictor = MergeSingleLayer(input_dim1=node_raw_features.shape[1],
+                                                  hidden_dim=node_raw_features.shape[1] // 2, output_dim=1)
+            else:
+                link_predictor = MergeLayer(input_dim1=node_raw_features.shape[1], input_dim2=node_raw_features.shape[1],
+                                            hidden_dim=node_raw_features.shape[1], output_dim=1)
             model = nn.Sequential(dynamic_backbone, link_predictor)
             logger.info(f'model -> {model}')
             logger.info(f'model name: {args.model_name}, #parameters: {get_parameter_sizes(model) * 4} B, '
@@ -198,6 +215,7 @@ if __name__ == "__main__":
             if args.model_name not in ['JODIE', 'DyRep', 'TGN']:
                 val_losses, val_metrics = evaluate_model_link_prediction(model_name=args.model_name,
                     model=model,
+                    edge_neighbor_sampler=full_edge_neighbor_sampler,
                     neighbor_sampler=full_neighbor_sampler,
                     evaluate_idx_data_loader=val_idx_data_loader,
                     evaluate_neg_edge_sampler=val_neg_edge_sampler,
@@ -209,6 +227,7 @@ if __name__ == "__main__":
 
                 new_node_val_losses, new_node_val_metrics = evaluate_model_link_prediction(model_name=args.model_name,
                     model=model,
+                    edge_neighbor_sampler=full_edge_neighbor_sampler,
                     neighbor_sampler=full_neighbor_sampler,
                     evaluate_idx_data_loader=new_node_val_idx_data_loader,
                     evaluate_neg_edge_sampler=new_node_val_neg_edge_sampler,
@@ -221,9 +240,10 @@ if __name__ == "__main__":
             if args.model_name in ['JODIE', 'DyRep', 'TGN']:
                 # the memory in the best model has seen the validation edges, we need to backup the memory for new testing nodes
                 val_backup_memory_bank = model[0].memory_bank.backup_memory_bank()
-
+            
             test_losses, test_metrics = evaluate_model_link_prediction(model_name=args.model_name,
                 model=model,
+                edge_neighbor_sampler=full_edge_neighbor_sampler,
                 neighbor_sampler=full_neighbor_sampler,
                 evaluate_idx_data_loader=test_idx_data_loader,
                 evaluate_neg_edge_sampler=test_neg_edge_sampler,
@@ -239,6 +259,7 @@ if __name__ == "__main__":
 
             new_node_test_losses, new_node_test_metrics = evaluate_model_link_prediction(model_name=args.model_name,
                 model=model,
+                edge_neighbor_sampler=full_edge_neighbor_sampler,
                 neighbor_sampler=full_neighbor_sampler,
                 evaluate_idx_data_loader=new_node_test_idx_data_loader,
                 evaluate_neg_edge_sampler=new_node_test_neg_edge_sampler,

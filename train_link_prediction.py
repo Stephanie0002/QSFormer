@@ -5,7 +5,6 @@ import os
 from tqdm import tqdm
 import numpy as np
 import warnings
-import shutil
 import json
 import torch
 import torch.nn as nn
@@ -14,6 +13,7 @@ from models.EnFormer import EnFormer
 from models.FastFormer import FastFormer
 from models.MixerFormer import MixerFormer
 from models.TpprFormer import TpprFormer
+from models.RepeatMixer import RepeatMixer
 
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 
@@ -24,9 +24,9 @@ from models.CAWN import CAWN
 from models.TCL import TCL
 from models.GraphMixer import GraphMixer
 from models.DyGFormer import DyGFormer
-from models.modules import MergeLayer
+from models.modules import MergeLayer, MergeSingleLayer
 from utils.utils import set_random_seed, convert_to_gpu, get_parameter_sizes, create_optimizer, NegativeEdgeSampler
-from utils.new_neighbor_sampler import get_neighbor_sampler
+from utils.new_neighbor_sampler import get_historical_neighbor_sampler, get_neighbor_sampler
 from evaluate_models_utils import evaluate_model_link_prediction
 from utils.metrics import get_link_prediction_metrics
 from utils.DataLoader import get_idx_data_loader, get_link_prediction_data
@@ -50,10 +50,26 @@ if __name__ == "__main__":
     train_neighbor_sampler = get_neighbor_sampler(model_name=args.model_name, data=train_data, g=g, sample_neighbor_strategy=args.sample_neighbor_strategy,
                                                   time_scaling_factor=args.time_scaling_factor, seed=0, dataset_type='train')
 
+    if args.model_name == 'RepeatMixer':
+        # initialize historical training neighbor sampler to retrieve temporal graph
+        historical_train_neighbor_sample = get_historical_neighbor_sampler(data=train_data,
+                                                                        sample_neighbor_strategy=args.sample_neighbor_strategy,
+                                                                        time_scaling_factor=args.time_scaling_factor,
+                                                                        seed=1)
+    else:
+        historical_train_neighbor_sample = None
+    
     # initialize validation and test neighbor sampler to retrieve temporal graph
     full_neighbor_sampler = get_neighbor_sampler(model_name=args.model_name, data=full_data, g=g, sample_neighbor_strategy=args.sample_neighbor_strategy,
                                                  time_scaling_factor=args.time_scaling_factor, seed=1, dataset_type='full')
-
+    if args.model_name == 'RepeatMixer':
+        # initialize full edge neighbor sampler to retrieve temporal graph
+        full_edge_neighbor_sampler = get_historical_neighbor_sampler(data=full_data,
+                                                                    sample_neighbor_strategy=args.sample_neighbor_strategy,
+                                                                    time_scaling_factor=args.time_scaling_factor, seed=1)
+    else:
+        full_edge_neighbor_sampler = None
+        
     # initialize negative samplers, set seeds for validation and testing so negatives are the same across different runs
     # in the inductive setting, negatives are sampled only amongst other new nodes
     # train negative edge sampler does not need to specify the seed, but evaluation samplers need to do so
@@ -126,6 +142,15 @@ if __name__ == "__main__":
         elif args.model_name == 'GraphMixer':
             dynamic_backbone = GraphMixer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                           time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors, num_layers=args.num_layers, dropout=args.dropout, device=args.device)
+        elif args.model_name == 'RepeatMixer':
+            dynamic_backbone = RepeatMixer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features,
+                                         neighbor_sampler=train_neighbor_sampler,
+                                         # reflect_table=reflect_table,
+                                         high_order=True,
+                                         # edge_neighbor_sampler=train_edge_neighbor_sampler,
+                                         edge_neighbor_sampler=historical_train_neighbor_sample,
+                                         time_feat_dim=args.time_feat_dim, num_tokens=args.num_neighbors,
+                                         num_layers=args.num_layers, dropout=args.dropout, device=args.device)
         elif args.model_name == 'DyGFormer':
             dynamic_backbone = DyGFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                          time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
@@ -162,8 +187,14 @@ if __name__ == "__main__":
                                          hops = args.num_hops)
         else:
             raise ValueError(f"Wrong value for model_name {args.model_name}!")
-        link_predictor = MergeLayer(input_dim1=dynamic_backbone.node_feat_dim, input_dim2=dynamic_backbone.node_feat_dim,
-                                    hidden_dim=node_raw_features.shape[1], output_dim=1)
+        
+        if args.model_name == 'RepeatMixer':
+            link_predictor = MergeSingleLayer(input_dim1=node_raw_features.shape[1],
+                                              hidden_dim=node_raw_features.shape[1] // 2, output_dim=1)
+        else:
+            link_predictor = MergeLayer(input_dim1=dynamic_backbone.node_feat_dim, input_dim2=dynamic_backbone.node_feat_dim,
+                                        hidden_dim=node_raw_features.shape[1], output_dim=1)
+        
         model = nn.Sequential(dynamic_backbone, link_predictor)
         logger.info(f'model -> {model}')
         logger.info(f'model name: {args.model_name}, #parameters: {get_parameter_sizes(model) * 4} B, '
@@ -186,9 +217,12 @@ if __name__ == "__main__":
         for epoch in range(args.num_epochs):
 
             model.train()
-            if args.model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'FastFormer','TpprFormer','MixerFormer']:
+            if args.model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'FastFormer','TpprFormer','MixerFormer']:
                 # training, only use training graph
                 model[0].set_neighbor_sampler(train_neighbor_sampler)
+            if args.model_name in ['RepeatMixer']:
+                # model[0].set_edge_neighbor_sampler(train_edge_neighbor_sampler)
+                model[0].set_edge_neighbor_sampler(historical_train_neighbor_sample)
             if args.model_name in ['JODIE', 'DyRep', 'TGN']:
                 # reinitialize memory of memory-based models at the start of each epoch
                 model[0].memory_bank.__init_memory_bank__()
@@ -264,6 +298,25 @@ if __name__ == "__main__":
                                                                           node_interact_times=batch_node_interact_times.repeat(args.train_neg_size),
                                                                           num_neighbors=args.num_neighbors,
                                                                           time_gap=args.time_gap)
+                elif args.model_name in ['RepeatMixer']:
+                    # get temporal embedding of source and destination nodes
+                    # two Tensors, with shape (batch_size, node_feat_dim)
+                    batch_edge_embeddings = \
+                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_src_node_ids,
+                                                                          dst_node_ids=batch_dst_node_ids,
+                                                                          node_interact_times=batch_node_interact_times,
+                                                                          num_neighbors=args.num_neighbors,
+                                                                          time_gap=args.time_gap)
+
+                    # get temporal embedding of negative source and negative destination nodes
+                    # two Tensors, with shape (batch_size, node_feat_dim)
+                    batch_neg_edge_embeddings = \
+                        model[0].compute_src_dst_node_temporal_embeddings(src_node_ids=batch_neg_src_node_ids,
+                                                                          dst_node_ids=batch_neg_dst_node_ids,
+                                                                          mask=True,
+                                                                          node_interact_times=batch_node_interact_times,
+                                                                          num_neighbors=args.num_neighbors,
+                                                                          time_gap=args.time_gap)
                 elif args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer','FastFormer','TpprFormer','MixerFormer']:
                     # get temporal embedding of source and destination nodes
                     # two Tensors, with shape (batch_size, node_feat_dim)
@@ -282,8 +335,12 @@ if __name__ == "__main__":
                     raise ValueError(f"Wrong value for model_name {args.model_name}!")
                 
                 # get positive and negative probabilities, shape (batch_size, )
-                positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings).squeeze(dim=-1).sigmoid()
-                negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings).squeeze(dim=-1).sigmoid()
+                if args.model_name in ['RepeatMixer']:
+                    positive_probabilities = model[1](input_1=batch_edge_embeddings, input_2=None, input_3=None).squeeze(dim=-1).sigmoid()
+                    negative_probabilities = model[1](batch_neg_edge_embeddings, input_2=None, input_3=None).squeeze(dim=-1).sigmoid()
+                else:
+                    positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings).squeeze(dim=-1).sigmoid()
+                    negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings).squeeze(dim=-1).sigmoid()
 
                 predicts = torch.cat([positive_probabilities, negative_probabilities], dim=0)
                 labels = torch.cat([torch.ones_like(positive_probabilities), torch.zeros_like(negative_probabilities)], dim=0)
@@ -319,6 +376,7 @@ if __name__ == "__main__":
             globals.timer.start_val()
             val_losses, val_metrics = evaluate_model_link_prediction(model_name=args.model_name,
                 model=model,
+                edge_neighbor_sampler=full_edge_neighbor_sampler,
                 neighbor_sampler=full_neighbor_sampler,
                 evaluate_idx_data_loader=val_idx_data_loader,
                 evaluate_neg_edge_sampler=val_neg_edge_sampler,
@@ -339,6 +397,7 @@ if __name__ == "__main__":
             globals.timer.start_val()
             new_node_val_losses, new_node_val_metrics = evaluate_model_link_prediction(model_name=args.model_name,
                 model=model,
+                edge_neighbor_sampler=full_edge_neighbor_sampler,
                 neighbor_sampler=full_neighbor_sampler,
                 evaluate_idx_data_loader=new_node_val_idx_data_loader,
                 evaluate_neg_edge_sampler=new_node_val_neg_edge_sampler,
@@ -372,6 +431,7 @@ if __name__ == "__main__":
             if (epoch + 1) % args.test_interval_epochs == 0:
                 test_losses, test_metrics = evaluate_model_link_prediction(model_name=args.model_name,
                     model=model,
+                    edge_neighbor_sampler=full_edge_neighbor_sampler,
                     neighbor_sampler=full_neighbor_sampler,
                     evaluate_idx_data_loader=test_idx_data_loader,
                     evaluate_neg_edge_sampler=test_neg_edge_sampler,
@@ -387,6 +447,7 @@ if __name__ == "__main__":
 
                 new_node_test_losses, new_node_test_metrics = evaluate_model_link_prediction(model_name=args.model_name,
                     model=model,
+                    edge_neighbor_sampler=full_edge_neighbor_sampler,
                     neighbor_sampler=full_neighbor_sampler,
                     evaluate_idx_data_loader=new_node_test_idx_data_loader,
                     evaluate_neg_edge_sampler=new_node_test_neg_edge_sampler,
@@ -430,6 +491,7 @@ if __name__ == "__main__":
         if args.model_name not in ['JODIE', 'DyRep', 'TGN']:
             val_losses, val_metrics = evaluate_model_link_prediction(model_name=args.model_name,
                 model=model,
+                edge_neighbor_sampler=full_edge_neighbor_sampler,
                 neighbor_sampler=full_neighbor_sampler,
                 evaluate_idx_data_loader=val_idx_data_loader,
                 evaluate_neg_edge_sampler=val_neg_edge_sampler,
@@ -441,6 +503,7 @@ if __name__ == "__main__":
 
             new_node_val_losses, new_node_val_metrics = evaluate_model_link_prediction(model_name=args.model_name,
                 model=model,
+                edge_neighbor_sampler=full_edge_neighbor_sampler,
                 neighbor_sampler=full_neighbor_sampler,
                 evaluate_idx_data_loader=new_node_val_idx_data_loader,
                 evaluate_neg_edge_sampler=new_node_val_neg_edge_sampler,
@@ -456,6 +519,7 @@ if __name__ == "__main__":
 
         test_losses, test_metrics = evaluate_model_link_prediction(model_name=args.model_name,
             model=model,
+            edge_neighbor_sampler=full_edge_neighbor_sampler,
             neighbor_sampler=full_neighbor_sampler,
             evaluate_idx_data_loader=test_idx_data_loader,
             evaluate_neg_edge_sampler=test_neg_edge_sampler,
@@ -471,6 +535,7 @@ if __name__ == "__main__":
 
         new_node_test_losses, new_node_test_metrics = evaluate_model_link_prediction(model_name=args.model_name,
             model=model,
+            edge_neighbor_sampler=full_edge_neighbor_sampler,
             neighbor_sampler=full_neighbor_sampler,
             evaluate_idx_data_loader=new_node_test_idx_data_loader,
             evaluate_neg_edge_sampler=new_node_test_neg_edge_sampler,

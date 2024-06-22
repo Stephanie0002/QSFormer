@@ -12,10 +12,10 @@ def get_link_prediction_args(is_evaluation: bool = False):
     # arguments
     parser = argparse.ArgumentParser('Interface for the link prediction task')
     parser.add_argument('--dataset_name', type=str, help='dataset to be used', default='wikipedia',
-                        choices=['wikipedia', 'reddit', 'mooc', 'lastfm', 'myket', 'enron', 'SocialEvo', 'uci', 'Flights', 'CanParl', 'USLegis', 'UNtrade', 'UNvote', 'Contacts'])
+                        choices=['wikipedia', 'reddit', 'myket', 'mooc', 'lastfm', 'myket', 'enron', 'SocialEvo', 'uci', 'Flights', 'CanParl', 'USLegis', 'UNtrade', 'UNvote', 'Contacts'])
     parser.add_argument('--batch_size', type=int, default=200, help='batch size')
     parser.add_argument('--model_name', type=str, default='DyGFormer', help='name of the model, note that EdgeBank is only applicable for evaluation',
-                        choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'FastFormer','TpprFormer','MixerFormer'])
+                        choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'FastFormer','TpprFormer','MixerFormer'])
     parser.add_argument('--gpu', type=int, default=0, help='number of gpu to use')
     parser.add_argument('--num_neighbors', type=int, default=20, help='number of neighbors to sample for each node')
     parser.add_argument('--sample_neighbor_strategy', type=str, default='recent', choices=['uniform', 'recent', 'time_interval_aware'], help='how to sample historical neighbors')
@@ -91,7 +91,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.dropout = 0.2
         else:
             args.dropout = 0.1
-        if args.dataset_name in ['reddit', 'CanParl', 'UNtrade']:
+        if args.dataset_name in ['reddit', 'myket', 'CanParl', 'UNtrade']:
             args.sample_neighbor_strategy = 'uniform'
         else:
             args.sample_neighbor_strategy = 'recent'
@@ -144,7 +144,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         args.sample_neighbor_strategy = 'time_interval_aware'
     elif args.model_name == 'EdgeBank':
         if args.negative_sample_strategy == 'random':
-            if args.dataset_name in ['wikipedia', 'reddit', 'uci', 'Flights']:
+            if args.dataset_name in ['wikipedia', 'reddit', 'myket', 'uci', 'Flights']:
                 args.edge_bank_memory_mode = 'unlimited_memory'
             elif args.dataset_name in ['mooc', 'lastfm', 'enron', 'CanParl', 'USLegis']:
                 args.edge_bank_memory_mode = 'time_window_memory'
@@ -163,7 +163,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
                 args.edge_bank_memory_mode = 'time_window_memory'
                 args.time_window_mode = 'repeat_interval'
             else:
-                assert args.dataset_name in ['wikipedia', 'reddit', 'SocialEvo', 'Flights']
+                assert args.dataset_name in ['wikipedia', 'reddit', 'myket', 'SocialEvo', 'Flights']
                 args.edge_bank_memory_mode = 'repeat_threshold_memory'
         else:
             assert args.negative_sample_strategy == 'inductive'
@@ -188,7 +188,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.dropout = 0.3
         else:
             args.dropout = 0.1
-        if args.dataset_name in ['reddit', 'CanParl', 'USLegis', 'UNtrade', 'UNvote']:
+        if args.dataset_name in ['reddit', 'myket', 'CanParl', 'USLegis', 'UNtrade', 'UNvote']:
             args.sample_neighbor_strategy = 'uniform'
         else:
             args.sample_neighbor_strategy = 'recent'
@@ -196,11 +196,11 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         args.num_layers = 2
         if args.dataset_name in ['wikipedia']:
             args.num_neighbors = 30
-        elif args.dataset_name in ['reddit', 'lastfm']:
+        elif args.dataset_name in ['reddit', 'myket', 'lastfm']:
             args.num_neighbors = 10
         else:
             args.num_neighbors = 20
-        if args.dataset_name in ['wikipedia', 'reddit', 'enron']:
+        if args.dataset_name in ['wikipedia', 'reddit', 'enron', 'myket']:
             args.dropout = 0.5
         elif args.dataset_name in ['mooc', 'uci', 'USLegis']:
             args.dropout = 0.4
@@ -216,9 +216,34 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.sample_neighbor_strategy = 'uniform'
         else:
             args.sample_neighbor_strategy = 'recent'
+    elif args.model_name == 'RepeatMixer':
+        args.num_layers = 3
+        if args.dataset_name in ['wikipedia']:
+            args.num_neighbors = 30
+        elif args.dataset_name in ['reddit', 'myket', 'lastfm', 'enron', 'SocialEvo']:
+            args.num_neighbors = 32
+        elif args.dataset_name in ['UNtrade', 'mooc', 'CanParl']:
+            args.num_neighbors = 64
+        elif args.dataset_name in ['CanParl']:
+            args.num_neighbors = 256
+        else:
+            args.num_neighbors = 32
+        if args.dataset_name in ['enron']:
+            args.dropout = 0.5
+        elif args.dataset_name in ['mooc', 'uci', 'USLegis']:
+            args.dropout = 0.4
+        elif args.dataset_name in ['lastfm', 'UNvote']:
+            args.dropout = 0.0
+        elif args.dataset_name in ['SocialEvo']:
+            args.dropout = 0.3
+        elif args.dataset_name in ['Flights', 'CanParl']:
+            args.dropout = 0.2
+        else:
+            args.dropout = 0.1
+        args.sample_neighbor_strategy = 'recent'
     elif args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer', 'FastFormer']:
         args.num_layers = 2
-        if args.dataset_name in ['reddit']:
+        if args.dataset_name in ['reddit', 'myket']:
             args.max_input_sequence_length = 64
             args.patch_size = 2
         elif args.dataset_name in ['mooc', 'enron', 'Flights', 'USLegis', 'UNtrade']:
@@ -237,7 +262,34 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.max_input_sequence_length = 32
             args.patch_size = 1
         assert args.max_input_sequence_length % args.patch_size == 0
-        if args.dataset_name in ['reddit', 'UNvote']:
+        if args.dataset_name in ['reddit', 'myket', 'UNvote']:
+            args.dropout = 0.2
+        elif args.dataset_name in ['enron', 'USLegis', 'UNtrade', 'Contacts']:
+            args.dropout = 0.0
+        else:
+            args.dropout = 0.1
+    elif args.model_name in ['CrossFormer', 'FastFormer']:
+        args.num_layers = 2
+        if args.dataset_name in ['wikipedia', 'uci', 'SocialEvo']:
+            args.max_input_sequence_length = 128
+            args.patch_size = 4
+        elif args.dataset_name in ['reddit', 'myket']:
+            args.max_input_sequence_length = 256
+            args.patch_size = 8
+        elif args.dataset_name in ['mooc', 'Flights', 'USLegis', 'UNtrade','Flights', 'lastfm', 'CanParl']:
+            args.max_input_sequence_length = 1024
+            args.patch_size = 32
+        elif args.dataset_name in ['enron']:
+            args.max_input_sequence_length = 256
+            args.patch_size = 8
+        elif args.dataset_name in ['UNvote']:
+            args.max_input_sequence_length = 512
+            args.patch_size = 16
+        else:
+            args.max_input_sequence_length = 32
+            args.patch_size = 1
+        assert args.max_input_sequence_length % args.patch_size == 0
+        if args.dataset_name in ['reddit', 'myket', 'UNvote']:
             args.dropout = 0.2
         elif args.dataset_name in ['enron', 'USLegis', 'UNtrade', 'Contacts']:
             args.dropout = 0.0
