@@ -22,7 +22,7 @@ if [ $method == "EdgeBank" ]; then
         for data in "${data_list[@]}"; do
             for neg in "${negative_sample_strategy[@]}"; do
                 # Run the command with the provided gpu, method, and current data
-                cmd="CUDA_VISIBLE_DEVICES=$gpu python evaluate_link_prediction.py --num_runs 1 --num_epochs 5 --dataset_name $data --model_name $method --negative_sample_strategy $neg"
+                cmd="CUDA_VISIBLE_DEVICES=$gpu python evaluate_link_prediction.py --num_runs 1 --num_epochs 5 --dataset_name $data --model_name $method --negative_sample_strategy $neg --load_best_configs"
                 echo "$cmd"
                 eval "$cmd"
             done
@@ -35,7 +35,7 @@ else
         for data in "${data_list[@]}"; do
             for neg in "${negative_sample_strategy[@]}"; do
                 # Run the command with the provided gpu, method, and current data
-                cmd="CUDA_VISIBLE_DEVICES=$gpu python evaluate_link_prediction.py --num_runs 1 --num_epochs 5 --dataset_name $data --model_name $method --negative_sample_strategy $neg"
+                cmd="CUDA_VISIBLE_DEVICES=$gpu python evaluate_link_prediction.py --num_runs 1 --num_epochs 5 --dataset_name $data --model_name $method --negative_sample_strategy $neg --load_best_configs"
                 echo "$cmd"
                 eval "$cmd"
             done
