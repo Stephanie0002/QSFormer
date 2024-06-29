@@ -342,13 +342,15 @@ def evaluate_edge_bank_link_prediction(args: argparse.Namespace, train_data: Dat
 
             if test_neg_edge_sampler.negative_sample_strategy != 'random':
                 batch_neg_src_node_ids, batch_neg_dst_node_ids = test_neg_edge_sampler.sample(size=len(batch_src_node_ids)*args.test_neg_size,
-                    batch_src_node_ids=batch_src_node_ids,
-                    batch_dst_node_ids=batch_dst_node_ids,
+                    batch_src_node_ids=batch_src_node_ids.repeat(args.test_neg_size),
+                    batch_dst_node_ids=batch_dst_node_ids.repeat(args.test_neg_size),
                     current_batch_start_time=batch_node_interact_times[0],
                     current_batch_end_time=batch_node_interact_times[-1])
             else:
                 _, batch_neg_dst_node_ids = test_neg_edge_sampler.sample(size=len(batch_src_node_ids)*args.test_neg_size)
-                batch_neg_src_node_ids = batch_src_node_ids
+                batch_neg_src_node_ids = batch_src_node_ids.repeat(args.test_neg_size)
+                
+            print(batch_neg_src_node_ids.shape, batch_neg_dst_node_ids.shape, batch_src_node_ids.shape, batch_dst_node_ids.shape)
 
             positive_edges = (batch_src_node_ids, batch_dst_node_ids)
             negative_edges = (batch_neg_src_node_ids, batch_neg_dst_node_ids)
