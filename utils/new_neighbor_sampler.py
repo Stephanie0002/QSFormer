@@ -783,7 +783,7 @@ def get_neighbor_sampler(model_name: str, data: Data, g: list = None, sample_nei
     # the list at the first position in adj_list is empty
     
     max_node_id = max(data.src_node_ids.max(), data.dst_node_ids.max())
-    if model_name in ['CrossFormer', 'FastFormer', 'MixerFormer']:
+    if model_name in ['CrossFormer', 'QSFormer', 'FFNFormer']:
         from utils.cpp.src.cpp_cores import ParallelSampler, get_neighbors    
         timestamp = np.concatenate([data.node_interact_times, data.node_interact_times])
         eid = np.concatenate([data.edge_ids, data.edge_ids])

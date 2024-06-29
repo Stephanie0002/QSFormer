@@ -7,11 +7,11 @@ import warnings
 import json
 import torch.nn as nn
 
-from FastDygForm.models.RepeatMixer import RepeatMixer
+from models.RepeatMixer import RepeatMixer
 from models.CrossFormer import CrossFormer
 from models.EnFormer import EnFormer
-from models.FastFormer import FastFormer
-from models.MixerFormer import MixerFormer
+from models.QSFormer import QSFormer
+from models.FFNFormer import FFNFormer
 from models.TGAT import TGAT
 from models.MemoryModel import MemoryModel, compute_src_dst_node_time_shifts
 from models.CAWN import CAWN
@@ -160,21 +160,24 @@ if __name__ == "__main__":
                                             time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
                                             num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                             max_input_sequence_length=args.max_input_sequence_length, device=args.device, hops = args.num_hops)
-            elif args.model_name == 'FastFormer':
-                dynamic_backbone = FastFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                            time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
+            elif args.model_name == 'QSFormer':
+                dynamic_backbone = QSFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
+                                            time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
+                                            cross_edge_neighbor_feat_dim=args.cross_edge_neighbor_feat_dim, patch_size=args.patch_size,
                                             num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                             max_input_sequence_length=args.max_input_sequence_length, device=args.device,
                                             hops = args.num_hops)
             elif args.model_name == 'TpprFormer':
-                dynamic_backbone = TpprFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                            time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
+                dynamic_backbone = TpprFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
+                                            time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
+                                            cross_edge_neighbor_feat_dim=args.cross_edge_neighbor_feat_dim, patch_size=args.patch_size,
                                             num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                             max_input_sequence_length=args.max_input_sequence_length, device=args.device,
                                             hops = args.num_hops)
-            elif args.model_name == 'MixerFormer':
-                dynamic_backbone = MixerFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                            time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
+            elif args.model_name == 'FFNFormer':
+                dynamic_backbone = FFNFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
+                                            time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
+                                            cross_edge_neighbor_feat_dim=args.cross_edge_neighbor_feat_dim, patch_size=args.patch_size,
                                             num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                             max_input_sequence_length=args.max_input_sequence_length, device=args.device,
                                             hops = args.num_hops)

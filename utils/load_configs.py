@@ -15,7 +15,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
                         choices=['wikipedia', 'reddit', 'myket', 'mooc', 'lastfm', 'myket', 'enron', 'SocialEvo', 'uci', 'Flights', 'CanParl', 'USLegis', 'UNtrade', 'UNvote', 'Contacts'])
     parser.add_argument('--batch_size', type=int, default=200, help='batch size')
     parser.add_argument('--model_name', type=str, default='DyGFormer', help='name of the model, note that EdgeBank is only applicable for evaluation',
-                        choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'FastFormer','TpprFormer','MixerFormer'])
+                        choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'QSFormer','TpprFormer','FFNFormer'])
     parser.add_argument('--gpu', type=int, default=0, help='number of gpu to use')
     parser.add_argument('--num_neighbors', type=int, default=20, help='number of neighbors to sample for each node')
     parser.add_argument('--sample_neighbor_strategy', type=str, default='recent', choices=['uniform', 'recent', 'time_interval_aware'], help='how to sample historical neighbors')
@@ -35,6 +35,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
                         choices=['fixed_proportion', 'repeat_interval'])
     parser.add_argument('--patch_size', type=int, default=1, help='patch size')
     parser.add_argument('--channel_embedding_dim', type=int, default=50, help='dimension of each channel embedding')
+    parser.add_argument('--cross_edge_neighbor_feat_dim', type=int, default=50, help='dimension of cross-edge neighbor feature')
     parser.add_argument('--max_input_sequence_length', type=int, default=32, help='maximal length of the input sequence of each node')
     parser.add_argument('--learning_rate', type=float, default=0.0001, help='learning rate')
     parser.add_argument('--dropout', type=float, default=0.1, help='dropout rate')
@@ -241,7 +242,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         else:
             args.dropout = 0.1
         args.sample_neighbor_strategy = 'recent'
-    elif args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer', 'FastFormer']:
+    elif args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer', 'QSFormer']:
         args.num_layers = 2
         if args.dataset_name in ['reddit', 'myket']:
             args.max_input_sequence_length = 64
@@ -268,7 +269,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.dropout = 0.0
         else:
             args.dropout = 0.1
-    elif args.model_name in ['CrossFormer', 'FastFormer']:
+    elif args.model_name in ['CrossFormer', 'QSFormer']:
         args.num_layers = 2
         if args.dataset_name in ['wikipedia', 'uci', 'SocialEvo']:
             args.max_input_sequence_length = 128
@@ -309,7 +310,7 @@ def get_node_classification_args():
     parser.add_argument('--dataset_name', type=str, help='dataset to be used', default='wikipedia', choices=['wikipedia', 'reddit'])
     parser.add_argument('--batch_size', type=int, default=200, help='batch size')
     parser.add_argument('--model_name', type=str, default='DyGFormer', help='name of the model',
-                        choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'FastFormer'])
+                        choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'QSFormer'])
     parser.add_argument('--gpu', type=int, default=0, help='number of gpu to use')
     parser.add_argument('--num_neighbors', type=int, default=20, help='number of neighbors to sample for each node')
     parser.add_argument('--sample_neighbor_strategy', type=str, default='recent', choices=['uniform', 'recent', 'time_interval_aware'], help='how to sample historical neighbors')
@@ -325,6 +326,7 @@ def get_node_classification_args():
     parser.add_argument('--position_feat_dim', type=int, default=172, help='dimension of the position embedding')
     parser.add_argument('--patch_size', type=int, default=1, help='patch size')
     parser.add_argument('--channel_embedding_dim', type=int, default=50, help='dimension of each channel embedding')
+    parser.add_argument('--cross_edge_neighbor_feat_dim', type=int, default=50, help='dimension of cross-edge neighbor feature')
     parser.add_argument('--max_input_sequence_length', type=int, default=32, help='maximal length of the input sequence of each node')
     parser.add_argument('--learning_rate', type=float, default=0.0001, help='learning rate')
     parser.add_argument('--dropout', type=float, default=0.1, help='dropout rate')
@@ -393,7 +395,7 @@ def load_node_classification_best_configs(args: argparse.Namespace):
             args.num_neighbors = 30
         args.dropout = 0.5
         args.sample_neighbor_strategy = 'recent'
-    elif args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer', 'FastFormer']:
+    elif args.model_name in ['DyGFormer', 'EnFormer']:
         args.num_layers = 2
         if args.dataset_name in ['reddit']:
             args.max_input_sequence_length = 64
@@ -406,5 +408,26 @@ def load_node_classification_best_configs(args: argparse.Namespace):
             args.dropout = 0.2
         else:
             args.dropout = 0.1
+    elif args.model_name in ['CrossFormer', 'QSFormer', 'FFNFormer']:
+        args.num_layers = 2
+        args.hops = 2
+        if args.dataset_name in ['reddit', 'myket']:
+            args.max_input_sequence_length = 256
+            args.patch_size = 8
+        elif args.dataset_name in ['wikipedia', 'uci', 'SocialEvo']:
+            args.max_input_sequence_length = 128
+            args.patch_size = 4
+        elif args.dataset_name in ['mooc','Flights', 'lastfm', 'CanParl']:
+            args.max_input_sequence_length = 1024
+            args.patch_size = 32
+        elif args.dataset_name in ['enron']:
+            args.max_input_sequence_length = 512
+            args.patch_size = 16
+        assert args.max_input_sequence_length % args.patch_size == 0
+        
+        if args.dataset_name in ['reddit']:
+            args.dropout = 0.2
+        else:
+            args.dropout = 0.1            
     else:
         raise ValueError(f"Wrong value for model_name {args.model_name}!")

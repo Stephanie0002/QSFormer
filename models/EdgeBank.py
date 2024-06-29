@@ -1,6 +1,8 @@
 import numpy as np
 from collections import defaultdict
 
+import torch
+
 from utils.DataLoader import Data
 
 
@@ -20,7 +22,7 @@ def predict_link_probabilities(edge_memories: set, edges_tuple: tuple):
         else:
             probabilities.append(0.0)
 
-    return np.array(probabilities)
+    return torch.tensor(probabilities)
 
 
 def edge_bank_unlimited_memory(history_src_node_ids: np.ndarray, history_dst_node_ids: np.ndarray):

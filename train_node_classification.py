@@ -12,12 +12,15 @@ import torch.nn as nn
 
 from models.CrossFormer import CrossFormer
 from models.EnFormer import EnFormer
+from models.FFNFormer import FFNFormer
+from models.QSFormer import QSFormer
 from models.TGAT import TGAT
 from models.MemoryModel import MemoryModel, compute_src_dst_node_time_shifts
 from models.CAWN import CAWN
 from models.TCL import TCL
 from models.GraphMixer import GraphMixer
 from models.DyGFormer import DyGFormer
+from models.TpprFormer import TpprFormer
 from models.modules import MergeLayer, MLPClassifier
 from utils.utils import set_random_seed, convert_to_gpu, get_parameter_sizes, create_optimizer
 from utils.neighbor_sampler import get_neighbor_sampler
@@ -109,15 +112,36 @@ if __name__ == "__main__":
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                          max_input_sequence_length=args.max_input_sequence_length, device=args.device)
         elif args.model_name == 'EnFormer':
-            dynamic_backbone = EnFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
+            dynamic_backbone = EnFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                          time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                          max_input_sequence_length=args.max_input_sequence_length, device=args.device, id_encode=args.id_encode)
         elif args.model_name == 'CrossFormer':
-            dynamic_backbone = CrossFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
+            dynamic_backbone = CrossFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                          time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
-                                         max_input_sequence_length=args.max_input_sequence_length, device=args.device)
+                                         max_input_sequence_length=args.max_input_sequence_length, device=args.device,
+                                         hops = args.num_hops)
+        elif args.model_name == 'QSFormer':
+            dynamic_backbone = QSFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
+                                         cross_channel_embedding_dim=args.cross_channel_embedding_dim, patch_size=args.patch_size,
+                                         num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
+                                         max_input_sequence_length=args.max_input_sequence_length, device=args.device,
+                                         hops = args.num_hops)
+        elif args.model_name == 'TpprFormer':
+            dynamic_backbone = TpprFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
+                                         num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
+                                         max_input_sequence_length=args.max_input_sequence_length, device=args.device,
+                                         hops = args.num_hops)
+        elif args.model_name == 'FFNFormer':
+            dynamic_backbone = FFNFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
+                                         cross_edge_neighbor_feat_dim=args.cross_edge_neighbor_feat_dim, patch_size=args.patch_size,
+                                         num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
+                                         max_input_sequence_length=args.max_input_sequence_length, device=args.device,
+                                         hops = args.num_hops)
         else:
             raise ValueError(f"Wrong value for model_name {args.model_name}!")
         link_predictor = MergeLayer(input_dim1=node_raw_features.shape[1], input_dim2=node_raw_features.shape[1],

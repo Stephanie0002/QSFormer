@@ -9,11 +9,12 @@ from utils.new_neighbor_sampler import NeighborSampler
 import utils.globals as globals
 
 
-class MixerFormer(nn.Module):
+class QSFormer(nn.Module):
 
     def __init__(self, node_raw_features: np.ndarray, edge_raw_features: np.ndarray, neighbor_sampler: NeighborSampler,
-                 time_feat_dim: int, channel_embedding_dim: int, patch_size: int = 1, num_layers: int = 2, num_heads: int = 2,
-                 dropout: float = 0.1, max_input_sequence_length: int = 512, device: str = 'cpu', hops: int = 2):
+                 time_feat_dim: int, channel_embedding_dim: int, cross_edge_neighbor_feat_dim: int, patch_size: int = 1, 
+                 num_layers: int = 2, num_heads: int = 2, dropout: float = 0.1, max_input_sequence_length: int = 512, 
+                 device: str = 'cpu', hops: int = 2):
         """
         DyGFormer model.
         :param node_raw_features: ndarray, shape (num_nodes + 1, node_feat_dim)
@@ -28,7 +29,7 @@ class MixerFormer(nn.Module):
         :param max_input_sequence_length: int, maximal length of the input sequence for each node
         :param device: str, device
         """
-        super(MixerFormer, self).__init__()
+        super(QSFormer, self).__init__()
 
         self.node_raw_features = torch.from_numpy(node_raw_features.astype(np.float32)).to(device)
         self.edge_raw_features = torch.from_numpy(edge_raw_features.astype(np.float32)).to(device)
@@ -45,41 +46,33 @@ class MixerFormer(nn.Module):
         self.max_input_sequence_length = max_input_sequence_length
         self.device = device
         self.hops = hops
+        
+        self.cross_edge_neighbor_feat_dim = cross_edge_neighbor_feat_dim
 
         self.time_encoder = TimeEncoder(time_dim=self.time_feat_dim)
-        self.frequency_encoder = FixedFrequencyEncoder(channel_embedding_dim)
-
-        self.neighbor_co_occurrence_feat_dim = self.channel_embedding_dim
-        
-        # self.neighbor_co_occurrence_encode_layer = nn.Sequential(
-        #         nn.Linear(in_features=1, out_features=self.neighbor_co_occurrence_feat_dim),
-        #         nn.ReLU(),
-        #         nn.Linear(in_features=self.neighbor_co_occurrence_feat_dim, out_features=self.neighbor_co_occurrence_feat_dim))
+        self.frequency_encoder = FixedFrequencyEncoder(self.cross_edge_neighbor_feat_dim)
         
         self.projection_layer = nn.ModuleDict({
             'node': nn.Linear(in_features=self.patch_size * self.node_feat_dim, out_features=self.channel_embedding_dim, bias=True),
             'edge': nn.Linear(in_features=self.patch_size * self.edge_feat_dim, out_features=self.channel_embedding_dim, bias=True),
             'time': nn.Linear(in_features=self.patch_size * self.time_feat_dim, out_features=self.channel_embedding_dim, bias=True),
-            'neighbor_co_occurrence': FeedForward(dims=self.patch_size * (self.neighbor_co_occurrence_feat_dim+self.max_input_sequence_length), out_dims=self.channel_embedding_dim, dropout=0., use_single_layer=True)
-            # nn.Linear(in_features=self.patch_size * (self.neighbor_co_occurrence_feat_dim+self.max_input_sequence_length), out_features=self.channel_embedding_dim, bias=True)
+            'neighbor_co_occurrence': nn.Linear(in_features=self.patch_size * (self.cross_edge_neighbor_feat_dim+self.max_input_sequence_length), out_features=self.channel_embedding_dim, bias=True)
         })
         
-        self.num_channels = 2
-        self.num_patches = max_input_sequence_length // patch_size
-        self.message_propogation = nn.ModuleList([
-            MLPMixer(num_tokens=self.num_channels * self.channel_embedding_dim, num_channels=self.num_patches * 2, token_dim_expansion_factor=0.5, channel_dim_expansion_factor=4.0, dropout=self.dropout)
-            for _ in range(self.num_channels//2)
-        ])
+        self.num_channels = 4
 
         self.transformers = nn.ModuleList([
             TransformerEncoder(attention_dim=self.num_channels * self.channel_embedding_dim, num_heads=self.num_heads, dropout=self.dropout)
-            for _ in range(self.num_channels//2)
+            for _ in range(self.num_layers)
         ])
 
         self.output_layer = nn.ModuleList([
             nn.Linear(in_features=self.num_channels * self.channel_embedding_dim, out_features=self.node_feat_dim, bias=True),
             nn.Linear(in_features=self.num_channels * self.channel_embedding_dim, out_features=self.node_feat_dim, bias=True)
         ])
+        
+    def get_neighbor_padding_size(self):
+        return self.src_neighbor_padding_size, self.dst_neighbor_padding_size
         
 
     def compute_src_dst_node_temporal_embeddings(self, src_node_ids: np.ndarray, dst_node_ids: np.ndarray, node_interact_times: np.ndarray, no_time: bool=False):
@@ -108,10 +101,13 @@ class MixerFormer(nn.Module):
         self.neighbor_sampler.neighbor_sample_from_nodes(dst_node_ids_th, node_interact_times_th)
         dst_nodes_neighbor_ids_list, dst_nodes_edge_ids_list, dst_nodes_neighbor_times_list, dst_srcindex_list = \
             self.neighbor_sampler.get_ret()
-           
+        
+        self.src_neighbor_padding_size, self.dst_neighbor_padding_size = torch.sum(src_nodes_neighbor_ids_list==0, axis=1), torch.sum(dst_nodes_neighbor_ids_list==0, axis=1)
+        # print("src_neighbor_padding_size", self.src_neighbor_padding_size)
+        # print("dst_neighbor_padding_size", self.dst_neighbor_padding_size)
+        
         src_nodes_neighbor_ids_list, src_nodes_edge_ids_list, src_nodes_neighbor_times_list = src_nodes_neighbor_ids_list.numpy(), src_nodes_edge_ids_list.numpy(), src_nodes_neighbor_times_list.numpy()
         dst_nodes_neighbor_ids_list, dst_nodes_edge_ids_list, dst_nodes_neighbor_times_list = dst_nodes_neighbor_ids_list.numpy(), dst_nodes_edge_ids_list.numpy(), dst_nodes_neighbor_times_list.numpy()
-
         if not no_time:
             globals.timer.end_neighbor_sample()
 
@@ -144,21 +140,26 @@ class MixerFormer(nn.Module):
         # dst_padded_nodes_appearances, Tensor, shape (batch_size, dst_max_seq_length, 2)
         src_padded_nodes_appearances, dst_padded_nodes_appearances = torch.from_numpy(src_padded_nodes_appearances).float().to(self.device), torch.from_numpy(dst_padded_nodes_appearances).float().to(self.device)
         # sum the neighbor co-occurrence features in the sequence of source and destination nodes
-        # Tensor, shape (batch_size, src_max_seq_length, neighbor_co_occurrence_feat_dim)
+        # Tensor, shape (batch_size, src_max_seq_length, cross_edge_neighbor_feat_dim)
         src_padded_nodes_neighbor_co_occurrence_features = self.frequency_encoder(src_padded_nodes_appearances).sum(dim=2)
-        # Tensor, shape (batch_size, dst_max_seq_length, neighbor_co_occurrence_feat_dim)
+            # self.neighbor_co_occurrence_encode_layer(src_padded_nodes_appearances.unsqueeze(dim=-1)).sum(dim=2)
+            
+        # Tensor, shape (batch_size, dst_max_seq_length, cross_edge_neighbor_feat_dim)
         dst_padded_nodes_neighbor_co_occurrence_features = self.frequency_encoder(dst_padded_nodes_appearances).sum(dim=2)
-        # add identity encoding for the same nodes
+            # self.neighbor_co_occurrence_encode_layer(dst_padded_nodes_appearances.unsqueeze(dim=-1)).sum(dim=2)
+        # add identity encoding for the same frequency nodes
         src_padded_nodes_neighbor_ids_th = torch.from_numpy(src_padded_nodes_neighbor_ids).to(self.device)
         src_neigh_mask = src_padded_nodes_neighbor_ids_th.unsqueeze(1) == src_padded_nodes_neighbor_ids_th.unsqueeze(2)
+        src_neigh_mask = src_neigh_mask&(src_padded_nodes_neighbor_ids_th.unsqueeze(1)!=0)
         src_iden_encode = src_neigh_mask.float()
         src_padded_nodes_neighbor_co_occurrence_features = torch.cat([src_padded_nodes_neighbor_co_occurrence_features, src_iden_encode], dim=2)
         dst_padded_nodes_neighbor_ids_th = torch.from_numpy(dst_padded_nodes_neighbor_ids).to(self.device)
         dst_neigh_mask = dst_padded_nodes_neighbor_ids_th.unsqueeze(1) == dst_padded_nodes_neighbor_ids_th.unsqueeze(2)
+        dst_neigh_mask = dst_neigh_mask&(dst_padded_nodes_neighbor_ids_th.unsqueeze(1)!=0)
         dst_iden_encode = dst_neigh_mask.float()
         dst_padded_nodes_neighbor_co_occurrence_features = torch.cat([dst_padded_nodes_neighbor_co_occurrence_features, dst_iden_encode], dim=2)
-        # src_padded_nodes_neighbor_co_occurrence_features = torch.zeros(src_padded_nodes_neighbor_ids.shape[0], src_padded_nodes_neighbor_ids.shape[1], self.neighbor_co_occurrence_feat_dim + self.max_input_sequence_length, device=self.device)
-        # dst_padded_nodes_neighbor_co_occurrence_features = torch.zeros(dst_padded_nodes_neighbor_ids.shape[0], dst_padded_nodes_neighbor_ids.shape[1], self.neighbor_co_occurrence_feat_dim + self.max_input_sequence_length, device=self.device)
+        # src_padded_nodes_neighbor_co_occurrence_features = torch.zeros(src_padded_nodes_neighbor_ids.shape[0], src_padded_nodes_neighbor_ids.shape[1], self.cross_edge_neighbor_feat_dim + self.max_input_sequence_length, device=self.device)
+        # dst_padded_nodes_neighbor_co_occurrence_features = torch.zeros(dst_padded_nodes_neighbor_ids.shape[0], dst_padded_nodes_neighbor_ids.shape[1], self.cross_edge_neighbor_feat_dim + self.max_input_sequence_length, device=self.device)
         if not no_time:
             globals.timer.end_encodeCo()
         
@@ -250,7 +251,6 @@ class MixerFormer(nn.Module):
         
         # Tensor, shape (batch_size, src_num_patches + dst_num_patches, num_channels, channel_embedding_dim)
         patches_data = [patches_nodes_neighbor_node_raw_features, patches_nodes_edge_raw_features, patches_nodes_neighbor_time_features, patches_nodes_neighbor_co_occurrence_features]
-        #[patches_nodes_neighbor_time_features, patches_nodes_neighbor_co_occurrence_features]
         patches_data = torch.stack(patches_data, dim=2)
         
         # Tensor, shape (batch_size, src_num_patches + dst_num_patches, num_channels * channel_embedding_dim)
@@ -259,8 +259,6 @@ class MixerFormer(nn.Module):
         if not no_time:
             globals.timer.start_transform()
         # Tensor, shape (batch_size, src_num_patches + dst_num_patches, num_channels * channel_embedding_dim)
-        for message_propogation in self.message_propogation:
-            patches_data = message_propogation(patches_data)
         for transformer in self.transformers:
             patches_data = transformer(patches_data)
         if not no_time:
@@ -359,7 +357,7 @@ class MixerFormer(nn.Module):
         :param padded_nodes_neighbor_node_raw_features: Tensor, shape (batch_size, max_seq_length, node_feat_dim)
         :param padded_nodes_edge_raw_features: Tensor, shape (batch_size, max_seq_length, edge_feat_dim)
         :param padded_nodes_neighbor_time_features: Tensor, shape (batch_size, max_seq_length, time_feat_dim)
-        :param padded_nodes_neighbor_co_occurrence_features: Tensor, shape (batch_size, max_seq_length, neighbor_co_occurrence_feat_dim)
+        :param padded_nodes_neighbor_co_occurrence_features: Tensor, shape (batch_size, max_seq_length, cross_edge_neighbor_feat_dim)
         :param patch_size: int, patch size
         :return:
         """
@@ -387,7 +385,7 @@ class MixerFormer(nn.Module):
         # Tensor, shape (batch_size, num_patches, patch_size * time_feat_dim)
         patches_nodes_neighbor_time_features = torch.stack(patches_nodes_neighbor_time_features, dim=1).reshape(batch_size, num_patches, patch_size * self.time_feat_dim)
         if padded_nodes_neighbor_co_occurrence_features is not None:
-            patches_nodes_neighbor_co_occurrence_features = torch.stack(patches_nodes_neighbor_co_occurrence_features, dim=1).reshape(batch_size, num_patches, patch_size * (self.neighbor_co_occurrence_feat_dim+self.max_input_sequence_length))
+            patches_nodes_neighbor_co_occurrence_features = torch.stack(patches_nodes_neighbor_co_occurrence_features, dim=1).reshape(batch_size, num_patches, patch_size * (self.cross_edge_neighbor_feat_dim+self.max_input_sequence_length))
         else:
             patches_nodes_neighbor_co_occurrence_features = None
         return patches_nodes_neighbor_node_raw_features, patches_nodes_edge_raw_features, patches_nodes_neighbor_time_features, patches_nodes_neighbor_co_occurrence_features
@@ -445,80 +443,3 @@ class TransformerEncoder(nn.Module):
         # Tensor, shape (batch_size, num_patches, self.attention_dim)
         outputs = outputs + self.dropout(hidden_states)
         return outputs
-    
-    
-class FeedForwardNet(nn.Module):
-
-    def __init__(self, input_dim: int, dim_expansion_factor: float, dropout: float = 0.0):
-        """
-        two-layered MLP with GELU activation function.
-        :param input_dim: int, dimension of input
-        :param dim_expansion_factor: float, dimension expansion factor
-        :param dropout: float, dropout rate
-        """
-        super(FeedForwardNet, self).__init__()
-
-        self.input_dim = input_dim
-        self.dim_expansion_factor = dim_expansion_factor
-        self.dropout = dropout
-
-        self.ffn = nn.Sequential(nn.Linear(in_features=input_dim, out_features=int(dim_expansion_factor * input_dim)),
-                                 nn.GELU(),
-                                 nn.Dropout(dropout),
-                                 nn.Linear(in_features=int(dim_expansion_factor * input_dim), out_features=input_dim),
-                                 nn.Dropout(dropout))
-
-    def forward(self, x: torch.Tensor):
-        """
-        feed forward net forward process
-        :param x: Tensor, shape (*, input_dim)
-        :return:
-        """
-        return self.ffn(x)
-    
-    
-class MLPMixer(nn.Module):
-
-    def __init__(self, num_tokens: int, num_channels: int, token_dim_expansion_factor: float = 0.5,
-                 channel_dim_expansion_factor: float = 4.0, dropout: float = 0.0):
-        """
-        MLP Mixer.
-        :param num_tokens: int, number of tokens
-        :param num_channels: int, number of channels
-        :param token_dim_expansion_factor: float, dimension expansion factor for tokens
-        :param channel_dim_expansion_factor: float, dimension expansion factor for channels
-        :param dropout: float, dropout rate
-        """
-        super(MLPMixer, self).__init__()
-
-        self.token_norm = nn.LayerNorm(num_tokens)
-        self.token_feedforward = FeedForwardNet(input_dim=num_tokens, dim_expansion_factor=token_dim_expansion_factor,
-                                                dropout=dropout)
-
-        self.channel_norm = nn.LayerNorm(num_channels)
-        self.channel_feedforward = FeedForwardNet(input_dim=num_channels, dim_expansion_factor=channel_dim_expansion_factor,
-                                                  dropout=dropout)
-
-    def forward(self, input_tensor: torch.Tensor):
-        """
-        mlp mixer to compute over tokens and channels
-        :param input_tensor: Tensor, shape (batch_size, num_patches, num_tokens)
-        :return:
-        """
-        # mix tokens
-        # Tensor, shape (batch_size, num_patches, num_tokens)
-        hidden_tensor = self.token_norm(input_tensor)
-        # Tensor, shape (batch_size, num_patches, num_tokens)
-        hidden_tensor = self.token_feedforward(hidden_tensor)
-        # Tensor, shape (batch_size, num_patches, num_tokens), residual connection
-        output_tensor = hidden_tensor + input_tensor
-
-        # mix channels
-        # Tensor, shape (batch_size, num_patches, num_tokens)
-        hidden_tensor = self.channel_norm(output_tensor.permute(0, 2, 1)).permute(0, 2, 1)
-        # Tensor, shape (batch_size, num_patches, num_tokens)
-        hidden_tensor = self.channel_feedforward(hidden_tensor.permute(0, 2, 1)).permute(0, 2, 1)
-        # Tensor, shape (batch_size, num_patches, num_tokens), residual connection
-        output_tensor = hidden_tensor + output_tensor
-
-        return output_tensor

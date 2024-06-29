@@ -8,10 +8,11 @@ import warnings
 import json
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from models.EnFormer import EnFormer
-from models.FastFormer import FastFormer
-from models.MixerFormer import MixerFormer
+from models.QSFormer import QSFormer
+from models.FFNFormer import FFNFormer
 from models.TpprFormer import TpprFormer
 from models.RepeatMixer import RepeatMixer
 
@@ -167,9 +168,10 @@ if __name__ == "__main__":
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                          max_input_sequence_length=args.max_input_sequence_length, device=args.device,
                                          hops = args.num_hops)
-        elif args.model_name == 'FastFormer':
-            dynamic_backbone = FastFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
+        elif args.model_name == 'QSFormer':
+            dynamic_backbone = QSFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
+                                         cross_edge_neighbor_feat_dim=args.cross_edge_neighbor_feat_dim, patch_size=args.patch_size,
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                          max_input_sequence_length=args.max_input_sequence_length, device=args.device,
                                          hops = args.num_hops)
@@ -179,9 +181,10 @@ if __name__ == "__main__":
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                          max_input_sequence_length=args.max_input_sequence_length, device=args.device,
                                          hops = args.num_hops)
-        elif args.model_name == 'MixerFormer':
-            dynamic_backbone = MixerFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
+        elif args.model_name == 'FFNFormer':
+            dynamic_backbone = FFNFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
+                                         cross_edge_neighbor_feat_dim=args.cross_edge_neighbor_feat_dim, patch_size=args.patch_size,
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                          max_input_sequence_length=args.max_input_sequence_length, device=args.device,
                                          hops = args.num_hops)
@@ -217,7 +220,7 @@ if __name__ == "__main__":
         for epoch in range(args.num_epochs):
 
             model.train()
-            if args.model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'FastFormer','TpprFormer','MixerFormer']:
+            if args.model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'QSFormer','TpprFormer','FFNFormer']:
                 # training, only use training graph
                 model[0].set_neighbor_sampler(train_neighbor_sampler)
             if args.model_name in ['RepeatMixer']:
@@ -317,7 +320,7 @@ if __name__ == "__main__":
                                                                           node_interact_times=batch_node_interact_times,
                                                                           num_neighbors=args.num_neighbors,
                                                                           time_gap=args.time_gap)
-                elif args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer','FastFormer','TpprFormer','MixerFormer']:
+                elif args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer','QSFormer','TpprFormer','FFNFormer']:
                     # get temporal embedding of source and destination nodes
                     # two Tensors, with shape (batch_size, node_feat_dim)
                     batch_src_node_embeddings, batch_dst_node_embeddings = \
@@ -359,7 +362,8 @@ if __name__ == "__main__":
                                 
                 with torch.no_grad():
                     if args.order.startswith('gradient'):
-                        weights = torch.special.expit(positive_probabilities.cpu())
+                        weights = positive_probabilities.cpu()
+                        weights = torch.special.expit(weights)
                         train_idx_data_loader.update_gradient(train_data_indices, weights)
 
                 # train_idx_data_loader_tqdm.set_description(f'Epoch: {epoch + 1}, train for the {batch_idx + 1}-th batch, train loss: {loss.item()}')
@@ -599,7 +603,7 @@ if __name__ == "__main__":
                 "test metrics": {metric_name: f'{test_metric_dict[metric_name]:.4f}' for metric_name in test_metric_dict},
                 "new node test metrics": {metric_name: f'{new_node_test_metric_dict[metric_name]:.4f}' for metric_name in new_node_test_metric_dict}
             }
-        if args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer', 'FastFormer','TpprFormer','MixerFormer']:
+        if args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer', 'QSFormer','TpprFormer','FFNFormer']:
             result_json['time'] = globals.timer.get_all(epoch=stop_epoch)
             
         result_json = json.dumps(result_json, indent=4)
