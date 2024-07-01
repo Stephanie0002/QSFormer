@@ -14,7 +14,7 @@ python ../FastDygForm/train_link_prediction.py --dataset_name Flights --gpu 1 --
 python ../FastDygForm/train_link_prediction.py --dataset_name lastfm --gpu 2 --order chorno --model_name DyGFormer --patch_size 16 --max_input_sequence_length 512 --num_runs 1 --num_hops 1 --dropout 0.1  > ../FastDygForm/gpu2-log.txt 2>&1 &
 python ../FastDygForm/train_link_prediction.py --dataset_name myket --gpu 3 --order chorno --model_name DyGFormer --patch_size 2 --max_input_sequence_length 64 --num_runs 1 --num_hops 1 --dropout 0.1 > ../FastDygForm/gpu3-log.txt 2>&1 &
 
-# gradient-0.08-3 + identical encode + two-hop neighbor + mixer
+# FFNFormer  gradient-0.08-3 + identical encode + two-hop neighbor + mixer
 python ../FastDygForm/train_link_prediction.py --dataset_name CanParl --gpu 0 --order gradient-0.08-3 --model_name FFNFormer --patch_size 32 --max_input_sequence_length 1024 --num_runs 1 --num_hops 2 --dropout 0.1  > ../FastDygForm/gg2-gpu0-log.txt 2>&1 &
 python ../FastDygForm/train_link_prediction.py --dataset_name UNtrade --gpu 1 --order gradient-0.08-3 --model_name FFNFormer --patch_size 32 --max_input_sequence_length 1024 --num_runs 1 --num_hops 2 --dropout 0.0  > ../FastDygForm/gg2-gpu1-log.txt 2>&1 &
 python ../FastDygForm/train_link_prediction.py --dataset_name mooc --gpu 2 --order gradient-0.08-3 --model_name FFNFormer --patch_size 32 --max_input_sequence_length 1024 --num_runs 1 --num_hops 2 --dropout 0.1  > ../FastDygForm/gg2-gpu2-log.txt 2>&1 &
@@ -46,7 +46,7 @@ python ../FastDygForm/train_link_prediction.py --dataset_name Flights --gpu 1 --
 python ../FastDygForm/train_link_prediction.py --dataset_name lastfm --gpu 2 --order gradient-0.08-3 --model_name FFNFormer --patch_size 32 --max_input_sequence_length 1024 --num_runs 1 --num_hops 1 --dropout 0.1  > ../FastDygForm/gpu2-log.txt 2>&1 &
 python ../FastDygForm/train_link_prediction.py --dataset_name myket --gpu 3 --order gradient-0.08-3 --model_name FFNFormer --patch_size 8 --max_input_sequence_length 256 --num_runs 1 --num_hops 1 --dropout 0.1 > ../FastDygForm/gpu3-log.txt 2>&1 &
 
-# gradient-0.08-3 + identical encode + tow-hop neighbor
+# QSFormer gradient-0.08-3 + identical encode + tow-hop neighbor
 python ../FastDygForm/train_link_prediction.py --dataset_name CanParl --gpu 0 --order gradient-0.08-3 --model_name QSFormer --patch_size 32 --max_input_sequence_length 1024 --num_runs 1 --num_hops 2 --dropout 0.1  > ../FastDygForm/gg2-gpu0-log.txt 2>&1 &
 python ../FastDygForm/train_link_prediction.py --dataset_name UNtrade --gpu 1 --order gradient-0.08-3 --model_name QSFormer --patch_size 32 --max_input_sequence_length 1024 --num_runs 1 --num_hops 2 --dropout 0.0  > ../FastDygForm/gg2-gpu1-log.txt 2>&1 &
 python ../FastDygForm/train_link_prediction.py --dataset_name mooc --gpu 2 --order gradient-0.08-3 --model_name QSFormer --patch_size 32 --max_input_sequence_length 1024 --num_runs 1 --num_hops 2 --dropout 0.1  > ../FastDygForm/gg2-gpu2-log.txt 2>&1 &

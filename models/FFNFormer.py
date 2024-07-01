@@ -14,7 +14,7 @@ class FFNFormer(nn.Module):
     def __init__(self, node_raw_features: np.ndarray, edge_raw_features: np.ndarray, neighbor_sampler: NeighborSampler,
                  time_feat_dim: int, channel_embedding_dim: int, cross_edge_neighbor_feat_dim: int, patch_size: int = 1, 
                  num_layers: int = 2, num_heads: int = 2, dropout: float = 0.1, max_input_sequence_length: int = 512, 
-                 device: str = 'cpu', hops: int = 2):
+                 num_high_order_neighbors: int = 3, device: str = 'cpu', hops: int = 2):
         """
         DyGFormer model.
         :param node_raw_features: ndarray, shape (num_nodes + 1, node_feat_dim)
@@ -44,6 +44,7 @@ class FFNFormer(nn.Module):
         self.num_heads = num_heads
         self.dropout = dropout
         self.max_input_sequence_length = max_input_sequence_length
+        self.num_high_order_neighbors = num_high_order_neighbors
         self.device = device
         self.hops = hops
 
@@ -65,16 +66,16 @@ class FFNFormer(nn.Module):
             # nn.Linear(in_features=self.patch_size * (self.cross_edge_neighbor_feat_dim+self.max_input_sequence_length), out_features=self.channel_embedding_dim, bias=True)
         })
         
-        self.num_channels = 2
+        self.num_channels = 4
         self.num_patches = max_input_sequence_length // patch_size
         self.message_propogation = nn.ModuleList([
             MLPMixer(num_tokens=self.num_channels * self.channel_embedding_dim, num_channels=self.num_patches * 2, token_dim_expansion_factor=0.5, channel_dim_expansion_factor=4.0, dropout=self.dropout)
-            for _ in range(self.num_channels//2)
+            for _ in range(self.num_layers//2)
         ])
 
         self.transformers = nn.ModuleList([
             TransformerEncoder(attention_dim=self.num_channels * self.channel_embedding_dim, num_heads=self.num_heads, dropout=self.dropout)
-            for _ in range(self.num_channels//2)
+            for _ in range(self.num_layers//2)
         ])
 
         self.output_layer = nn.ModuleList([
@@ -95,7 +96,9 @@ class FFNFormer(nn.Module):
             globals.timer.start_neighbor_sample()
         
         if(self.hops == 2):
-            self.neighbor_sampler.set_fanouts([self.max_input_sequence_length//4, 3])
+            self.neighbor_sampler.set_fanouts([self.max_input_sequence_length//(self.num_high_order_neighbors+1), self.num_high_order_neighbors])
+        elif(self.hops == 3):
+            self.neighbor_sampler.set_fanouts([self.max_input_sequence_length//(pow(self.num_high_order_neighbors, 2) + self.num_high_order_neighbors + 1), self.num_high_order_neighbors, pow(self.num_high_order_neighbors, 2)])
         else:
             self.neighbor_sampler.set_fanouts([self.max_input_sequence_length,])
         src_node_ids_th, dst_node_ids_th, node_interact_times_th = torch.from_numpy(src_node_ids), torch.from_numpy(dst_node_ids), torch.from_numpy(node_interact_times)

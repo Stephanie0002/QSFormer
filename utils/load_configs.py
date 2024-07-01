@@ -18,6 +18,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
                         choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'QSFormer','TpprFormer','FFNFormer'])
     parser.add_argument('--gpu', type=int, default=0, help='number of gpu to use')
     parser.add_argument('--num_neighbors', type=int, default=20, help='number of neighbors to sample for each node')
+    parser.add_argument('--num_high_order_neighbors', type=int, default=3, help='number of hight order neighbors to sample for each node', choices=[1, 3, 7, 15])
     parser.add_argument('--sample_neighbor_strategy', type=str, default='recent', choices=['uniform', 'recent', 'time_interval_aware'], help='how to sample historical neighbors')
     parser.add_argument('--time_scaling_factor', default=1e-6, type=float, help='the hyperparameter that controls the sampling preference with time interval, '
                         'a large time_scaling_factor tends to sample more on recent links, 0.0 corresponds to uniform sampling, '
@@ -403,7 +404,6 @@ def load_node_classification_best_configs(args: argparse.Namespace):
         else:
             args.max_input_sequence_length = 32
             args.patch_size = 1
-        assert args.max_input_sequence_length % args.patch_size == 0
         if args.dataset_name in ['reddit']:
             args.dropout = 0.2
         else:
@@ -417,17 +417,23 @@ def load_node_classification_best_configs(args: argparse.Namespace):
         elif args.dataset_name in ['wikipedia', 'uci', 'SocialEvo']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
-        elif args.dataset_name in ['mooc','Flights', 'lastfm', 'CanParl']:
+        elif args.dataset_name in ['mooc', 'lastfm', 'CanParl']:
             args.max_input_sequence_length = 1024
             args.patch_size = 32
-        elif args.dataset_name in ['enron']:
+        elif args.dataset_name in ['Flights']:
             args.max_input_sequence_length = 512
             args.patch_size = 16
+            args.num_high_order_neighbors = 1
+        elif args.dataset_name in ['enron']:
+            args.max_input_sequence_length = 256
+            args.num_high_order_neighbors = 1
+            args.patch_size = 8
         assert args.max_input_sequence_length % args.patch_size == 0
+        
         
         if args.dataset_name in ['reddit']:
             args.dropout = 0.2
         else:
-            args.dropout = 0.1            
+            args.dropout = 0.1
     else:
         raise ValueError(f"Wrong value for model_name {args.model_name}!")

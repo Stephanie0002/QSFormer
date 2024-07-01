@@ -165,8 +165,8 @@ if __name__ == "__main__":
                                             time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
                                             cross_edge_neighbor_feat_dim=args.cross_edge_neighbor_feat_dim, patch_size=args.patch_size,
                                             num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
-                                            max_input_sequence_length=args.max_input_sequence_length, device=args.device,
-                                            hops = args.num_hops)
+                                            max_input_sequence_length=args.max_input_sequence_length, num_high_order_neighbors=args.num_high_order_neighbors, 
+                                            device=args.device, hops = args.num_hops)
             elif args.model_name == 'TpprFormer':
                 dynamic_backbone = TpprFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
                                             time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
@@ -179,8 +179,8 @@ if __name__ == "__main__":
                                             time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
                                             cross_edge_neighbor_feat_dim=args.cross_edge_neighbor_feat_dim, patch_size=args.patch_size,
                                             num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
-                                            max_input_sequence_length=args.max_input_sequence_length, device=args.device,
-                                            hops = args.num_hops)
+                                            max_input_sequence_length=args.max_input_sequence_length, num_high_order_neighbors=args.num_high_order_neighbors, 
+                                            device=args.device, hops = args.num_hops)
             else:
                 raise ValueError(f"Wrong value for model_name {args.model_name}!")
             if args.model_name == 'RepeatMixer':
