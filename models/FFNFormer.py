@@ -59,17 +59,16 @@ class FFNFormer(nn.Module):
         #         nn.Linear(in_features=self.cross_edge_neighbor_feat_dim, out_features=self.cross_edge_neighbor_feat_dim))
         
         self.projection_layer = nn.ModuleDict({
-            'node': nn.Linear(in_features=self.patch_size * self.node_feat_dim, out_features=self.channel_embedding_dim, bias=True),
-            'edge': nn.Linear(in_features=self.patch_size * self.edge_feat_dim, out_features=self.channel_embedding_dim, bias=True),
-            'time': nn.Linear(in_features=self.patch_size * self.time_feat_dim, out_features=self.channel_embedding_dim, bias=True),
-            'neighbor_co_occurrence': FeedForward(dims=self.patch_size * (self.cross_edge_neighbor_feat_dim+self.max_input_sequence_length), out_dims=self.channel_embedding_dim, dropout=0., use_single_layer=True)
-            # nn.Linear(in_features=self.patch_size * (self.cross_edge_neighbor_feat_dim+self.max_input_sequence_length), out_features=self.channel_embedding_dim, bias=True)
+            'node': FeedForward(dims=self.patch_size * self.node_feat_dim, out_dims=self.channel_embedding_dim, dropout=dropout, use_single_layer=True),
+            'edge': FeedForward(dims=self.patch_size * self.edge_feat_dim, out_dims=self.channel_embedding_dim, dropout=dropout, use_single_layer=True),
+            'time': FeedForward(dims=self.patch_size * self.time_feat_dim, out_dims=self.channel_embedding_dim, dropout=dropout, use_single_layer=True),
+            'neighbor_co_occurrence': FeedForward(dims=self.patch_size * (self.cross_edge_neighbor_feat_dim+self.max_input_sequence_length), out_dims=self.channel_embedding_dim, dropout=dropout, use_single_layer=True)
         })
         
         self.num_channels = 4
         self.num_patches = max_input_sequence_length // patch_size
         self.message_propogation = nn.ModuleList([
-            MLPMixer(num_tokens=self.num_channels * self.channel_embedding_dim, num_channels=self.num_patches * 2, token_dim_expansion_factor=0.5, channel_dim_expansion_factor=4.0, dropout=self.dropout)
+            FFNNormLayer(num_dims=self.num_channels * self.channel_embedding_dim, num_patchs=self.num_patches * 2, inside_patches_dim_expansion_factor=0.5, between_patches_dim_expansion_factor=4.0, dropout=self.dropout)
             for _ in range(self.num_layers//2)
         ])
 
@@ -263,9 +262,8 @@ class FFNFormer(nn.Module):
         if not no_time:
             globals.timer.start_transform()
         # Tensor, shape (batch_size, src_num_patches + dst_num_patches, num_channels * channel_embedding_dim)
-        for message_propogation in self.message_propogation:
+        for message_propogation, transformer in zip(self.message_propogation, self.transformers):
             patches_data = message_propogation(patches_data)
-        for transformer in self.transformers:
             patches_data = transformer(patches_data)
         if not no_time:
             globals.timer.end_transform()
@@ -481,48 +479,48 @@ class FeedForwardNet(nn.Module):
         return self.ffn(x)
     
     
-class MLPMixer(nn.Module):
+class FFNNormLayer(nn.Module):
 
-    def __init__(self, num_tokens: int, num_channels: int, token_dim_expansion_factor: float = 0.5,
-                 channel_dim_expansion_factor: float = 4.0, dropout: float = 0.0):
+    def __init__(self, num_dims: int, num_patchs: int, inside_patches_dim_expansion_factor: float = 0.5,
+                 between_patches_dim_expansion_factor: float = 4.0, dropout: float = 0.0):
         """
         MLP Mixer.
-        :param num_tokens: int, number of tokens
-        :param num_channels: int, number of channels
+        :param num_dims: int, number of tokens
+        :param num_patchs: int, number of channels
         :param token_dim_expansion_factor: float, dimension expansion factor for tokens
         :param channel_dim_expansion_factor: float, dimension expansion factor for channels
         :param dropout: float, dropout rate
         """
-        super(MLPMixer, self).__init__()
+        super(FFNNormLayer, self).__init__()
 
-        self.token_norm = nn.LayerNorm(num_tokens)
-        self.token_feedforward = FeedForwardNet(input_dim=num_tokens, dim_expansion_factor=token_dim_expansion_factor,
+        self.dim_norm = nn.LayerNorm(num_dims)
+        self.dim_feedforward = FeedForwardNet(input_dim=num_dims, dim_expansion_factor=inside_patches_dim_expansion_factor,
                                                 dropout=dropout)
 
-        self.channel_norm = nn.LayerNorm(num_channels)
-        self.channel_feedforward = FeedForwardNet(input_dim=num_channels, dim_expansion_factor=channel_dim_expansion_factor,
+        self.patch_norm = nn.LayerNorm(num_patchs)
+        self.patch_feedforward = FeedForwardNet(input_dim=num_patchs, dim_expansion_factor=between_patches_dim_expansion_factor,
                                                   dropout=dropout)
 
     def forward(self, input_tensor: torch.Tensor):
         """
         mlp mixer to compute over tokens and channels
-        :param input_tensor: Tensor, shape (batch_size, num_patches, num_tokens)
+        :param input_tensor: Tensor, shape (batch_size, num_patches, num_dims)
         :return:
         """
-        # mix tokens
-        # Tensor, shape (batch_size, num_patches, num_tokens)
-        hidden_tensor = self.token_norm(input_tensor)
-        # Tensor, shape (batch_size, num_patches, num_tokens)
-        hidden_tensor = self.token_feedforward(hidden_tensor)
-        # Tensor, shape (batch_size, num_patches, num_tokens), residual connection
+        # mix inside patches
+        # Tensor, shape (batch_size, num_patches, num_dims)
+        hidden_tensor = self.dim_norm(input_tensor)
+        # Tensor, shape (batch_size, num_patches, num_dims)
+        hidden_tensor = self.dim_feedforward(hidden_tensor)
+        # Tensor, shape (batch_size, num_patches, num_dims), residual connection
         output_tensor = hidden_tensor + input_tensor
 
-        # mix channels
-        # Tensor, shape (batch_size, num_patches, num_tokens)
-        hidden_tensor = self.channel_norm(output_tensor.permute(0, 2, 1)).permute(0, 2, 1)
-        # Tensor, shape (batch_size, num_patches, num_tokens)
-        hidden_tensor = self.channel_feedforward(hidden_tensor.permute(0, 2, 1)).permute(0, 2, 1)
-        # Tensor, shape (batch_size, num_patches, num_tokens), residual connection
+        # mix between patches
+        # Tensor, shape (batch_size, num_patches, num_dims)
+        hidden_tensor = self.patch_norm(output_tensor.permute(0, 2, 1)).permute(0, 2, 1)
+        # Tensor, shape (batch_size, num_patches, num_dims)
+        hidden_tensor = self.patch_feedforward(hidden_tensor.permute(0, 2, 1)).permute(0, 2, 1)
+        # Tensor, shape (batch_size, num_patches, num_dims), residual connection
         output_tensor = hidden_tensor + output_tensor
 
         return output_tensor

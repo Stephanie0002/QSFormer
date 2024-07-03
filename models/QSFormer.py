@@ -54,10 +54,10 @@ class QSFormer(nn.Module):
         self.frequency_encoder = FixedFrequencyEncoder(self.cross_edge_neighbor_feat_dim)
         
         self.projection_layer = nn.ModuleDict({
-            'node': nn.Linear(in_features=self.patch_size * self.node_feat_dim, out_features=self.channel_embedding_dim, bias=True),
-            'edge': nn.Linear(in_features=self.patch_size * self.edge_feat_dim, out_features=self.channel_embedding_dim, bias=True),
-            'time': nn.Linear(in_features=self.patch_size * self.time_feat_dim, out_features=self.channel_embedding_dim, bias=True),
-            'neighbor_co_occurrence': nn.Linear(in_features=self.patch_size * (self.cross_edge_neighbor_feat_dim+self.max_input_sequence_length), out_features=self.channel_embedding_dim, bias=True)
+            'node': FeedForward(dims=self.patch_size * self.node_feat_dim, out_dims=self.channel_embedding_dim, dropout=dropout, use_single_layer=True),
+            'edge': FeedForward(dims=self.patch_size * self.edge_feat_dim, out_dims=self.channel_embedding_dim, dropout=dropout, use_single_layer=True),
+            'time': FeedForward(dims=self.patch_size * self.time_feat_dim, out_dims=self.channel_embedding_dim, dropout=dropout, use_single_layer=True),
+            'neighbor_co_occurrence': FeedForward(dims=self.patch_size * (self.cross_edge_neighbor_feat_dim+self.max_input_sequence_length), out_dims=self.channel_embedding_dim, dropout=dropout, use_single_layer=True)
         })
         
         self.num_channels = 4
