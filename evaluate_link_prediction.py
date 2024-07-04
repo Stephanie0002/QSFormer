@@ -69,10 +69,10 @@ if __name__ == "__main__":
         new_node_test_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=new_node_test_data.src_node_ids, dst_node_ids=new_node_test_data.dst_node_ids, seed=3)
 
     # get data loaders
-    val_idx_data_loader = get_idx_data_loader(len(val_data.src_node_ids), batch_size=args.batch_size, device='cpu', edge_deg=None)
-    new_node_val_idx_data_loader = get_idx_data_loader(len(new_node_val_data.src_node_ids), batch_size=args.batch_size, device='cpu', edge_deg=None)
-    test_idx_data_loader = get_idx_data_loader(len(test_data.src_node_ids), batch_size=args.batch_size, device='cpu', edge_deg=None)
-    new_node_test_idx_data_loader = get_idx_data_loader(len(new_node_test_data.src_node_ids), batch_size=args.batch_size, device='cpu', edge_deg=None)
+    val_idx_data_loader = get_idx_data_loader(len(val_data.src_node_ids), batch_size=args.batch_size//10, device='cpu', edge_deg=None)
+    new_node_val_idx_data_loader = get_idx_data_loader(len(new_node_val_data.src_node_ids), batch_size=args.batch_size//10, device='cpu', edge_deg=None)
+    test_idx_data_loader = get_idx_data_loader(len(test_data.src_node_ids), batch_size=args.batch_size//10, device='cpu', edge_deg=None)
+    new_node_test_idx_data_loader = get_idx_data_loader(len(new_node_test_data.src_node_ids), batch_size=args.batch_size//10, device='cpu', edge_deg=None)
 
     # we separately evaluate EdgeBank, since EdgeBank does not contain any trainable parameters and has a different evaluation pipeline
     if args.model_name == 'EdgeBank':
