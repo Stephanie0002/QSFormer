@@ -17,48 +17,57 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--model_name', type=str, default='DyGFormer', help='name of the model, note that EdgeBank is only applicable for evaluation',
                         choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'QSFormer','TpprFormer','FFNFormer'])
     parser.add_argument('--gpu', type=int, default=0, help='number of gpu to use')
+    
     parser.add_argument('--num_neighbors', type=int, default=20, help='number of neighbors to sample for each node')
     parser.add_argument('--num_high_order_neighbors', type=int, default=3, help='number of hight order neighbors to sample for each node', choices=[1, 3, 7, 15])
+    parser.add_argument('--num_walk_heads', type=int, default=8, help='number of heads used for the attention in walk encoder')
+    parser.add_argument('--num_heads', type=int, default=2, help='number of heads used in attention layer')
+    parser.add_argument('--num_layers', type=int, default=2, help='number of model layers')
+    parser.add_argument('--num_epochs', type=int, default=100, help='number of epochs')
+    parser.add_argument('--num_runs', type=int, default=1, help='number of runs')
+    parser.add_argument('--num_hops', type=int, default=1, help='number of neighbor hops to consider')
+    
+    parser.add_argument('--order', type=str, default="chorno", help='the order to organize the data')#, choices=['chorno', 'gradient', 'uniform_random', 'edge_inv', 'edge_noneinv'])
+    parser.add_argument('--patch_size', type=int, default=1, help='patch size')
+    parser.add_argument('--max_input_sequence_length', type=int, default=32, help='maximal length of the input sequence of each node')
+    
+    parser.add_argument('--time_feat_dim', type=int, default=100, help='dimension of the time embedding')
+    parser.add_argument('--position_feat_dim', type=int, default=172, help='dimension of the position embedding')
+    parser.add_argument('--channel_embedding_dim', type=int, default=50, help='dimension of each channel embedding')
+    parser.add_argument('--cross_edge_neighbor_feat_dim', type=int, default=50, help='dimension of cross-edge neighbor feature')
+    
+    
+    parser.add_argument('--walk_length', type=int, default=1, help='length of each random walk')
     parser.add_argument('--sample_neighbor_strategy', type=str, default='recent', choices=['uniform', 'recent', 'time_interval_aware'], help='how to sample historical neighbors')
     parser.add_argument('--time_scaling_factor', default=1e-6, type=float, help='the hyperparameter that controls the sampling preference with time interval, '
                         'a large time_scaling_factor tends to sample more on recent links, 0.0 corresponds to uniform sampling, '
                         'it works when sample_neighbor_strategy == time_interval_aware')
-    parser.add_argument('--num_walk_heads', type=int, default=8, help='number of heads used for the attention in walk encoder')
-    parser.add_argument('--num_heads', type=int, default=2, help='number of heads used in attention layer')
-    parser.add_argument('--num_layers', type=int, default=2, help='number of model layers')
-    parser.add_argument('--walk_length', type=int, default=1, help='length of each random walk')
     parser.add_argument('--time_gap', type=int, default=2000, help='time gap for neighbors to compute node features')
-    parser.add_argument('--time_feat_dim', type=int, default=100, help='dimension of the time embedding')
-    parser.add_argument('--position_feat_dim', type=int, default=172, help='dimension of the position embedding')
     parser.add_argument('--edge_bank_memory_mode', type=str, default='unlimited_memory', help='how memory of EdgeBank works',
                         choices=['unlimited_memory', 'time_window_memory', 'repeat_threshold_memory'])
     parser.add_argument('--time_window_mode', type=str, default='fixed_proportion', help='how to select the time window size for time window memory',
                         choices=['fixed_proportion', 'repeat_interval'])
-    parser.add_argument('--patch_size', type=int, default=1, help='patch size')
-    parser.add_argument('--channel_embedding_dim', type=int, default=50, help='dimension of each channel embedding')
-    parser.add_argument('--cross_edge_neighbor_feat_dim', type=int, default=50, help='dimension of cross-edge neighbor feature')
-    parser.add_argument('--max_input_sequence_length', type=int, default=32, help='maximal length of the input sequence of each node')
+    
+    parser.add_argument('--optimizer', type=str, default='Adam', choices=['SGD', 'Adam', 'RMSprop'], help='name of optimizer')
     parser.add_argument('--learning_rate', type=float, default=0.0001, help='learning rate')
     parser.add_argument('--dropout', type=float, default=0.1, help='dropout rate')
-    parser.add_argument('--num_epochs', type=int, default=100, help='number of epochs')
-    parser.add_argument('--optimizer', type=str, default='Adam', choices=['SGD', 'Adam', 'RMSprop'], help='name of optimizer')
     parser.add_argument('--weight_decay', type=float, default=0.0, help='weight decay')
     parser.add_argument('--patience', type=int, default=20, help='patience for early stopping')
+    
     parser.add_argument('--val_ratio', type=float, default=0.15, help='ratio of validation set')
     parser.add_argument('--test_ratio', type=float, default=0.15, help='ratio of test set')
-    parser.add_argument('--num_runs', type=int, default=1, help='number of runs')
     parser.add_argument('--test_interval_epochs', type=int, default=10, help='how many epochs to perform testing once')
     parser.add_argument('--negative_sample_strategy', type=str, default='random', choices=['random', 'historical', 'inductive'],
                         help='strategy for the negative edge sampling')
-    parser.add_argument('--load_best_configs', action='store_true', default=False, help='whether to load the best configurations')
-
-    parser.add_argument('--order', type=str, default="chorno", help='the order to organize the data')#, choices=['chorno', 'gradient', 'uniform_random', 'edge_inv', 'edge_noneinv'])
+    parser.add_argument('--id_encode', action='store_true', default=True, help='whether to encode identification')
     parser.add_argument('--train_neg_size', type=int, default=1, help='the number of negative samples for each positive sample in training')
     parser.add_argument('--val_neg_size', type=int, default=9, help='the number of negative samples for each positive sample in validation')
     parser.add_argument('--test_neg_size', type=int, default=49, help='the number of negative samples for each positive sample in testing')
+
     parser.add_argument('--load_model_filename', type=str, help='model param file to be load', default='None')
-    parser.add_argument('--id_encode', action='store_true', default=True, help='whether to encode identification')
-    parser.add_argument('--num_hops', type=int, default=1, help='number of neighbor hops to consider')
+    
+    
+    parser.add_argument('--load_best_configs', action='store_true', default=False, help='whether to load the best configurations')
     
     try:
         args = parser.parse_args()
@@ -317,32 +326,43 @@ def get_node_classification_args():
     parser.add_argument('--model_name', type=str, default='DyGFormer', help='name of the model',
                         choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'QSFormer'])
     parser.add_argument('--gpu', type=int, default=0, help='number of gpu to use')
+    
     parser.add_argument('--num_neighbors', type=int, default=20, help='number of neighbors to sample for each node')
+    parser.add_argument('--num_walk_heads', type=int, default=8, help='number of heads used for the attention in walk encoder')
+    parser.add_argument('--num_heads', type=int, default=2, help='number of heads used in attention layer')
+    parser.add_argument('--num_layers', type=int, default=2, help='number of model layers')
+    parser.add_argument('--num_epochs', type=int, default=100, help='number of epochs')
+    parser.add_argument('--num_runs', type=int, default=1, help='number of runs')
+    parser.add_argument('--num_hops', type=int, default=1, help='number of neighbor hops to consider')
+    
+    parser.add_argument('--order', type=str, default="chorno", help='the order to organize the data')#, choices=['chorno', 'gradient', 'uniform_random', 'edge_inv', 'edge_noneinv'])
+    parser.add_argument('--patch_size', type=int, default=1, help='patch size')
+    parser.add_argument('--max_input_sequence_length', type=int, default=32, help='maximal length of the input sequence of each node')
+    
+    parser.add_argument('--time_feat_dim', type=int, default=100, help='dimension of the time embedding')
+    parser.add_argument('--position_feat_dim', type=int, default=172, help='dimension of the position embedding')
+    parser.add_argument('--channel_embedding_dim', type=int, default=50, help='dimension of each channel embedding')
+    parser.add_argument('--cross_edge_neighbor_feat_dim', type=int, default=50, help='dimension of cross-edge neighbor feature')
+    
+    parser.add_argument('--walk_length', type=int, default=1, help='length of each random walk')
     parser.add_argument('--sample_neighbor_strategy', type=str, default='recent', choices=['uniform', 'recent', 'time_interval_aware'], help='how to sample historical neighbors')
     parser.add_argument('--time_scaling_factor', default=1e-6, type=float, help='the hyperparameter that controls the sampling preference with time interval, '
                         'a large time_scaling_factor tends to sample more on recent links, 0.0 corresponds to uniform sampling, '
                         'it works when sample_neighbor_strategy == time_interval_aware')
-    parser.add_argument('--num_walk_heads', type=int, default=8, help='number of heads used for the attention in walk encoder')
-    parser.add_argument('--num_heads', type=int, default=2, help='number of heads used in attention layer')
-    parser.add_argument('--num_layers', type=int, default=2, help='number of model layers')
-    parser.add_argument('--walk_length', type=int, default=1, help='length of each random walk')
     parser.add_argument('--time_gap', type=int, default=2000, help='time gap for neighbors to compute node features')
-    parser.add_argument('--time_feat_dim', type=int, default=100, help='dimension of the time embedding')
-    parser.add_argument('--position_feat_dim', type=int, default=172, help='dimension of the position embedding')
-    parser.add_argument('--patch_size', type=int, default=1, help='patch size')
-    parser.add_argument('--channel_embedding_dim', type=int, default=50, help='dimension of each channel embedding')
-    parser.add_argument('--cross_edge_neighbor_feat_dim', type=int, default=50, help='dimension of cross-edge neighbor feature')
-    parser.add_argument('--max_input_sequence_length', type=int, default=32, help='maximal length of the input sequence of each node')
+    
+    parser.add_argument('--optimizer', type=str, default='Adam', choices=['SGD', 'Adam', 'RMSprop'], help='name of optimizer')
     parser.add_argument('--learning_rate', type=float, default=0.0001, help='learning rate')
     parser.add_argument('--dropout', type=float, default=0.1, help='dropout rate')
-    parser.add_argument('--num_epochs', type=int, default=100, help='number of epochs')
-    parser.add_argument('--optimizer', type=str, default='Adam', choices=['SGD', 'Adam', 'RMSprop'], help='name of optimizer')
     parser.add_argument('--weight_decay', type=float, default=0.0, help='weight decay')
     parser.add_argument('--patience', type=int, default=20, help='patience for early stopping')
+    
     parser.add_argument('--val_ratio', type=float, default=0.15, help='ratio of validation set')
     parser.add_argument('--test_ratio', type=float, default=0.15, help='ratio of test set')
-    parser.add_argument('--num_runs', type=int, default=1, help='number of runs')
     parser.add_argument('--test_interval_epochs', type=int, default=10, help='how many epochs to perform testing once')
+    
+    parser.add_argument('--load_model_filename', type=str, help='model param file to be load', default='None')
+    
     parser.add_argument('--load_best_configs', action='store_true', default=False, help='whether to load the best configurations')
 
     try:
@@ -400,6 +420,14 @@ def load_node_classification_best_configs(args: argparse.Namespace):
             args.num_neighbors = 30
         args.dropout = 0.5
         args.sample_neighbor_strategy = 'recent'
+    elif args.model_name == 'RepeatMixer':
+        args.num_layers = 3
+        if args.dataset_name in ['reddit']:
+            args.num_neighbors = 32
+        else:
+            args.num_neighbors = 30
+        args.dropout = 0.6
+        args.sample_neighbor_strategy = 'recent'
     elif args.model_name in ['DyGFormer', 'EnFormer']:
         args.num_layers = 2
         if args.dataset_name in ['reddit']:
@@ -415,23 +443,16 @@ def load_node_classification_best_configs(args: argparse.Namespace):
     elif args.model_name in ['CrossFormer', 'QSFormer', 'FFNFormer']:
         args.num_layers = 2
         args.hops = 2
-        if args.dataset_name in ['reddit', 'myket']:
-            args.max_input_sequence_length = 256
-            args.patch_size = 8
-        elif args.dataset_name in ['wikipedia', 'uci', 'SocialEvo']:
-            args.max_input_sequence_length = 128
-            args.patch_size = 4
-        elif args.dataset_name in ['mooc', 'lastfm', 'CanParl']:
-            args.max_input_sequence_length = 1024
-            args.patch_size = 32
-        elif args.dataset_name in ['Flights']:
-            args.max_input_sequence_length = 512
-            args.patch_size = 16
-            args.num_high_order_neighbors = 1
-        elif args.dataset_name in ['enron']:
-            args.max_input_sequence_length = 256
-            args.num_high_order_neighbors = 1
-            args.patch_size = 8
+        if args.dataset_name in ['reddit']:
+            args.max_input_sequence_length = 64
+            args.patch_size = 2
+        else:
+            args.max_input_sequence_length = 32
+            args.patch_size = 1
+        if args.dataset_name in ['reddit']:
+            args.dropout = 0.2
+        else:
+            args.dropout = 0.1
         assert args.max_input_sequence_length % args.patch_size == 0
         
         
