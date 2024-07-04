@@ -339,13 +339,11 @@ class FeedForward(nn.Module):
     """
 
     def __init__(self, dims, expansion_factor=1., dropout=0., use_single_layer=False,
-                 out_dims=0, use_act=True,
-                 save_h_neigh_grad=False):
+                 out_dims=0, use_act=True):
         super().__init__()
 
         self.h_v = None
         self.h_neigh = None
-        self.save_grad = save_h_neigh_grad
 
         self.use_single_layer = use_single_layer
         self.expansion_factor = expansion_factor
@@ -386,14 +384,7 @@ class FeedForward(nn.Module):
         if x.shape[-1] == 0:
             return x
 
-        if self.save_grad:
-            self.h_v = x
-
         x = self.linear_0(x)
-
-        if self.save_grad:
-            self.h_neigh = x
-            if self.training: self.h_neigh.retain_grad()
 
         if self.use_act:
             x = F.gelu(x)

@@ -46,7 +46,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--patience', type=int, default=20, help='patience for early stopping')
     parser.add_argument('--val_ratio', type=float, default=0.15, help='ratio of validation set')
     parser.add_argument('--test_ratio', type=float, default=0.15, help='ratio of test set')
-    parser.add_argument('--num_runs', type=int, default=5, help='number of runs')
+    parser.add_argument('--num_runs', type=int, default=1, help='number of runs')
     parser.add_argument('--test_interval_epochs', type=int, default=10, help='how many epochs to perform testing once')
     parser.add_argument('--negative_sample_strategy', type=str, default='random', choices=['random', 'historical', 'inductive'],
                         help='strategy for the negative edge sampling')
@@ -243,8 +243,9 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         else:
             args.dropout = 0.1
         args.sample_neighbor_strategy = 'recent'
-    elif args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer', 'QSFormer']:
+    elif args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer']:
         args.num_layers = 2
+        args.order = 'gradient-0.08-3' if args.model_name == 'EnFormer' else 'chorno'
         if args.dataset_name in ['reddit', 'myket']:
             args.max_input_sequence_length = 64
             args.patch_size = 2
@@ -255,8 +256,8 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.max_input_sequence_length = 512
             args.patch_size = 16
         elif args.dataset_name in ['CanParl']:
-            args.max_input_sequence_length = 2048
-            args.patch_size = 64
+            args.max_input_sequence_length = 1024
+            args.patch_size = 32
         elif args.dataset_name in ['UNvote']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
@@ -270,8 +271,11 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.dropout = 0.0
         else:
             args.dropout = 0.1
-    elif args.model_name in ['CrossFormer', 'QSFormer']:
+    elif args.model_name in ['QSFormer', 'FFNFormer']:
         args.num_layers = 2
+        args.order = 'gradient-0.08-3'
+        args.num_hops = 2
+        args.num_high_order_neighbors = 3
         if args.dataset_name in ['wikipedia', 'uci', 'SocialEvo']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
@@ -292,11 +296,11 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.patch_size = 1
         assert args.max_input_sequence_length % args.patch_size == 0
         if args.dataset_name in ['reddit', 'myket', 'UNvote']:
-            args.dropout = 0.2
+            args.dropout = 0.25
         elif args.dataset_name in ['enron', 'USLegis', 'UNtrade', 'Contacts']:
-            args.dropout = 0.0
-        else:
             args.dropout = 0.1
+        else:
+            args.dropout = 0.15
     else:
         raise ValueError(f"Wrong value for model_name {args.model_name}!")
 
@@ -337,7 +341,7 @@ def get_node_classification_args():
     parser.add_argument('--patience', type=int, default=20, help='patience for early stopping')
     parser.add_argument('--val_ratio', type=float, default=0.15, help='ratio of validation set')
     parser.add_argument('--test_ratio', type=float, default=0.15, help='ratio of test set')
-    parser.add_argument('--num_runs', type=int, default=5, help='number of runs')
+    parser.add_argument('--num_runs', type=int, default=1, help='number of runs')
     parser.add_argument('--test_interval_epochs', type=int, default=10, help='how many epochs to perform testing once')
     parser.add_argument('--load_best_configs', action='store_true', default=False, help='whether to load the best configurations')
 
