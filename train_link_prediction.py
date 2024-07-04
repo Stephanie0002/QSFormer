@@ -48,8 +48,7 @@ if __name__ == "__main__":
         get_link_prediction_data(dataset_name=args.dataset_name, val_ratio=args.val_ratio, test_ratio=args.test_ratio)
 
     # initialize training neighbor sampler to retrieve temporal graph
-    train_neighbor_sampler = get_neighbor_sampler(model_name=args.model_name, data=train_data, g=g, sample_neighbor_strategy=args.sample_neighbor_strategy,
-                                                  time_scaling_factor=args.time_scaling_factor, seed=0, dataset_type='train')
+    train_neighbor_sampler = get_neighbor_sampler(model_name=args.model_name, data=train_data, sample_neighbor_strategy=args.sample_neighbor_strategy, time_scaling_factor=args.time_scaling_factor, seed=0, dataset_type='train')
 
     if args.model_name == 'RepeatMixer':
         # initialize historical training neighbor sampler to retrieve temporal graph
@@ -61,8 +60,7 @@ if __name__ == "__main__":
         historical_train_neighbor_sample = None
     
     # initialize validation and test neighbor sampler to retrieve temporal graph
-    full_neighbor_sampler = get_neighbor_sampler(model_name=args.model_name, data=full_data, sample_neighbor_strategy=args.sample_neighbor_strategy,
-                                                 time_scaling_factor=args.time_scaling_factor, seed=1, dataset_type='full')
+    full_neighbor_sampler = get_neighbor_sampler(model_name=args.model_name, data=full_data, sample_neighbor_strategy=args.sample_neighbor_strategy, time_scaling_factor=args.time_scaling_factor, seed=1, dataset_type='full')
     if args.model_name == 'RepeatMixer':
         # initialize full edge neighbor sampler to retrieve temporal graph
         full_edge_neighbor_sampler = get_historical_neighbor_sampler(data=full_data,
