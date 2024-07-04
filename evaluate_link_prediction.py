@@ -12,6 +12,9 @@ from models.CrossFormer import CrossFormer
 from models.EnFormer import EnFormer
 from models.QSFormer import QSFormer
 from models.FFNFormer import FFNFormer
+
+os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
+
 from models.TGAT import TGAT
 from models.MemoryModel import MemoryModel, compute_src_dst_node_time_shifts
 from models.CAWN import CAWN

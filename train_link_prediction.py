@@ -61,7 +61,7 @@ if __name__ == "__main__":
         historical_train_neighbor_sample = None
     
     # initialize validation and test neighbor sampler to retrieve temporal graph
-    full_neighbor_sampler = get_neighbor_sampler(model_name=args.model_name, data=full_data, g=g, sample_neighbor_strategy=args.sample_neighbor_strategy,
+    full_neighbor_sampler = get_neighbor_sampler(model_name=args.model_name, data=full_data, sample_neighbor_strategy=args.sample_neighbor_strategy,
                                                  time_scaling_factor=args.time_scaling_factor, seed=1, dataset_type='full')
     if args.model_name == 'RepeatMixer':
         # initialize full edge neighbor sampler to retrieve temporal graph
@@ -177,7 +177,9 @@ if __name__ == "__main__":
                                          device=args.device, hops = args.num_hops)
         elif args.model_name == 'TpprFormer':
             dynamic_backbone = TpprFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
+                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
+                                         cross_edge_neighbor_feat_dim=args.cross_edge_neighbor_feat_dim,
+                                         patch_size=args.patch_size,
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                          max_input_sequence_length=args.max_input_sequence_length, device=args.device,
                                          hops = args.num_hops)
@@ -490,6 +492,11 @@ if __name__ == "__main__":
         stop_epoch = args.num_epochs if stop_epoch == 0 else stop_epoch
         # evaluate the best model
         logger.info(f'get final performance on dataset {args.dataset_name}...')
+        
+        set_random_seed(seed=run)
+        full_neighbor_sampler.reset_random_state()
+        val_neg_edge_sampler.reset_random_state()
+        test_neg_edge_sampler.reset_random_state()
 
         # the saved best model of memory-based models cannot perform validation since the stored memory has been updated by validation data
         if args.model_name not in ['JODIE', 'DyRep', 'TGN']:

@@ -765,7 +765,7 @@ def get_historical_neighbor_sampler(data: Data, sample_neighbor_strategy: str = 
 
 
 
-def get_neighbor_sampler(model_name: str, data: Data, g: list = None, sample_neighbor_strategy: str = 'uniform', time_scaling_factor: float = 0.0, seed: int = None, dataset_type: str = 'train'):
+def get_neighbor_sampler(model_name: str, data: Data, sample_neighbor_strategy: str = 'uniform', time_scaling_factor: float = 0.0, seed: int = None, dataset_type: str = 'train'):
     """
     get neighbor sampler
     :param data: Data
