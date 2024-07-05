@@ -16,29 +16,29 @@ data_list=("${data_list_method1[@]}")
 # fi
 
 if [ $method == "EdgeBank" ]; then
-    dir_to_check="logs/$method/$data/${negative_sample_strategy}_negative_sampling_${method}_seed0"
-    if [ ! -d "$dir_to_check" ]; then
-        # Iterate over the data list
-        for data in "${data_list[@]}"; do
-            for neg in "${negative_sample_strategy[@]}"; do
+    # Iterate over the data list
+    for data in "${data_list[@]}"; do
+        for neg in "${negative_sample_strategy[@]}"; do
+            dir_to_check="logs/$method/$data/${neg}_negative_sampling_${method}_seed0"
+            if [ ! -d "$dir_to_check" ]; then
                 # Run the command with the provided gpu, method, and current data
                 cmd="CUDA_VISIBLE_DEVICES=$gpu python evaluate_link_prediction.py --num_runs 1 --num_epochs 5 --dataset_name $data --model_name $method --negative_sample_strategy $neg --load_best_configs"
                 echo "$cmd"
                 eval "$cmd"
-            done
+            fi
         done
-    fi
+    done
 else
-    dir_to_check="logs/$method/$data/${negative_sample_strategy}_negative_sampling_${method}_seed0"
-    if [ ! -d "$dir_to_check" ]; then
-        # Iterate over the data list
-        for data in "${data_list[@]}"; do
-            for neg in "${negative_sample_strategy[@]}"; do
+    # Iterate over the data list
+    for data in "${data_list[@]}"; do
+        for neg in "${negative_sample_strategy[@]}"; do
+            dir_to_check="logs/$method/$data/${neg}_negative_sampling_${method}_seed0"
+            if [ ! -d "$dir_to_check" ]; then
                 # Run the command with the provided gpu, method, and current data
                 cmd="CUDA_VISIBLE_DEVICES=$gpu python evaluate_link_prediction.py --num_runs 1 --num_epochs 5 --dataset_name $data --model_name $method --negative_sample_strategy $neg --load_best_configs"
                 echo "$cmd"
                 eval "$cmd"
-            done
+            fi
         done
-    fi
+    done
 fi
