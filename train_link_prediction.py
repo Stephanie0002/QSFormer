@@ -494,7 +494,9 @@ if __name__ == "__main__":
         set_random_seed(seed=run)
         full_neighbor_sampler.reset_random_state()
         val_neg_edge_sampler.reset_random_state()
+        new_node_val_neg_edge_sampler.reset_random_state()
         test_neg_edge_sampler.reset_random_state()
+        new_node_test_neg_edge_sampler.reset_random_state()
 
         # the saved best model of memory-based models cannot perform validation since the stored memory has been updated by validation data
         if args.model_name not in ['JODIE', 'DyRep', 'TGN']:
