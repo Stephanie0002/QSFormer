@@ -30,10 +30,13 @@ def preprocess(dataset_name: str):
             # timestamp
             ts = float(e[2])
             # check whether time in ascending order
-            assert ts >= previous_time
+            assert ts >= previous_time, "{} is not upper than {}".format(ts, previous_time)
             previous_time = ts
             # state_label
-            label = float(e[3])
+            if len(e) < 4:
+                label = 0.0
+            else:
+                label = float(e[3])
 
             # edge features
             feat = np.array([float(x) for x in e[4:]])
@@ -154,7 +157,7 @@ def check_data(dataset_name: str):
 parser = argparse.ArgumentParser('Interface for preprocessing datasets')
 parser.add_argument('--dataset_name', type=str,
                     choices=['wikipedia', 'reddit', 'mooc', 'lastfm', 'myket', 'enron', 'SocialEvo', 'uci',
-                             'Flights', 'CanParl', 'USLegis', 'UNtrade', 'UNvote', 'Contacts'],
+                             'Flights', 'CanParl', 'USLegis', 'UNtrade', 'UNvote', 'Contacts', 'askUbuntu'],
                     help='Dataset name', default='wikipedia')
 parser.add_argument('--node_feat_dim', type=int, default=172, help='Number of node raw features')
 
@@ -173,6 +176,6 @@ else:
         preprocess_data(dataset_name=args.dataset_name, bipartite=False, node_feat_dim=args.node_feat_dim)
     print(f'{args.dataset_name} is processed successfully.')
 
-    if args.dataset_name not in ['myket']:
+    if args.dataset_name not in ['myket', 'askUbuntu']:
         check_data(args.dataset_name)
     print(f'{args.dataset_name} passes the checks successfully.')

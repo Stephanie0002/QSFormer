@@ -12,7 +12,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     # arguments
     parser = argparse.ArgumentParser('Interface for the link prediction task')
     parser.add_argument('--dataset_name', type=str, help='dataset to be used', default='wikipedia',
-                        choices=['wikipedia', 'reddit', 'myket', 'mooc', 'lastfm', 'myket', 'enron', 'SocialEvo', 'uci', 'Flights', 'CanParl', 'USLegis', 'UNtrade', 'UNvote', 'Contacts'])
+                        choices=['wikipedia', 'reddit', 'myket', 'mooc', 'lastfm', 'myket', 'enron', 'SocialEvo', 'uci', 'Flights', 'CanParl', 'USLegis', 'UNtrade', 'UNvote', 'Contacts', 'askUbuntu'])
     parser.add_argument('--batch_size', type=int, default=200, help='batch size')
     parser.add_argument('--model_name', type=str, default='DyGFormer', help='name of the model, note that EdgeBank is only applicable for evaluation',
                         choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'QSFormer','TpprFormer','FFNFormer'])
