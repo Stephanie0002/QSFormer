@@ -110,6 +110,7 @@ for root, dirs, files in os.walk(folder_path):
             dict['epoch'] = num_epochs
             df = df._append(dict, ignore_index=True)
             df = df[~df['file_path'].str.contains('old')]
+            df = df[~df['file_path'].str.contains('bak')]
             # df = df.sort_values(by='filepath')
 
 # 将数据帧保存到 Excel 表格
