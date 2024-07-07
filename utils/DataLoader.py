@@ -1,4 +1,5 @@
 from math import ceil
+import os
 from typing import Iterator, List
 import torch
 # from torch.utils.data import Dataset, DataLoader
@@ -185,10 +186,12 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
     graph_df = pd.read_csv('./processed_data/{}/ml_{}.csv'.format(dataset_name, dataset_name))
     edge_raw_features = np.load('./processed_data/{}/ml_{}.npy'.format(dataset_name, dataset_name))
     node_raw_features = np.load('./processed_data/{}/ml_{}_node.npy'.format(dataset_name, dataset_name))
-    
-    g = np.load('./processed_data/{}/ext_full.npz'.format(dataset_name))
-    g = [torch.as_tensor(g['indptr']), torch.as_tensor(g['indices']), 
-         torch.as_tensor(g['eid']), torch.as_tensor(g['ts'], dtype=torch.float64)]
+    # if os.path.exists('./processed_data/{}/ext_full.npz'.format(dataset_name)):
+    #     g = np.load('./processed_data/{}/ext_full.npz'.format(dataset_name))
+    #     g = [torch.as_tensor(g['indptr']), torch.as_tensor(g['indices']), 
+    #         torch.as_tensor(g['eid']), torch.as_tensor(g['ts'], dtype=torch.float64)]
+    # else:
+    #     g = None
 
     NODE_FEAT_DIM = EDGE_FEAT_DIM = 172
     assert NODE_FEAT_DIM >= node_raw_features.shape[1], f'Node feature dimension in dataset {dataset_name} is bigger than {NODE_FEAT_DIM}!'
@@ -285,7 +288,7 @@ def get_link_prediction_data(dataset_name: str, val_ratio: float, test_ratio: fl
         new_node_test_data.num_interactions, new_node_test_data.num_unique_nodes))
     print("{} nodes were used for the inductive testing, i.e. are never seen during training".format(len(new_test_node_set)))
 
-    return g, node_raw_features, edge_raw_features, full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data
+    return node_raw_features, edge_raw_features, full_data, train_data, val_data, test_data, new_node_val_data, new_node_test_data
 
 
 def get_node_classification_data(dataset_name: str, val_ratio: float, test_ratio: float):

@@ -1,7 +1,7 @@
 # !/bin/bash
 
 # Define the data lists for each method
-declare -a data_list_method1=("wikipedia" "reddit" "mooc" "lastfm" "myket" "enron" "SocialEvo" "uci" "Flights" "CanParl")
+declare -a data_list_method1=("wikipedia" "reddit" "mooc" "lastfm" "myket" "enron" "SocialEvo" "uci" "Flights" "CanParl" "Contacts" "askUbuntu")
 # declare -a data_dyg=("CanParl" "USLegis" "UNtrade" "UNvote" "Contacts")  # List of data values for DyGFormer
 
 # Read the gpu and method from command-line arguments
