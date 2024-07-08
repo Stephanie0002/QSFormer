@@ -218,7 +218,8 @@ if __name__ == "__main__":
             logger.info(f'get final performance on dataset {args.dataset_name}...')
             
             set_random_seed(seed=run)
-            full_neighbor_sampler.reset_random_state()
+            if args.model_name not in ['FFNFormer', 'QSFormer', 'EnFormer', 'CrossFormer']:
+                full_neighbor_sampler.reset_random_state()
             val_neg_edge_sampler.reset_random_state()
             new_node_val_neg_edge_sampler.reset_random_state()
             test_neg_edge_sampler.reset_random_state()

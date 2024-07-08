@@ -195,7 +195,7 @@ if __name__ == "__main__":
             link_predictor = MergeSingleLayer(input_dim1=node_raw_features.shape[1],
                                               hidden_dim=node_raw_features.shape[1] // 2, output_dim=1)
         else:
-            link_predictor = MergeLayer(input_dim1=dynamic_backbone.node_feat_dim, input_dim2=dynamic_backbone.node_feat_dim,
+            link_predictor = MergeLayer(input_dim1=node_raw_features.shape[1], input_dim2=node_raw_features.shape[1],
                                         hidden_dim=node_raw_features.shape[1], output_dim=1)
         
         model = nn.Sequential(dynamic_backbone, link_predictor)
@@ -492,7 +492,8 @@ if __name__ == "__main__":
         logger.info(f'get final performance on dataset {args.dataset_name}...')
         
         set_random_seed(seed=run)
-        full_neighbor_sampler.reset_random_state()
+        if args.model_name not in ['FFNFormer', 'QSFormer', 'EnFormer', 'CrossFormer']:
+                full_neighbor_sampler.reset_random_state()
         val_neg_edge_sampler.reset_random_state()
         new_node_val_neg_edge_sampler.reset_random_state()
         test_neg_edge_sampler.reset_random_state()
