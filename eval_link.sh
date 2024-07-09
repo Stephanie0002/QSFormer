@@ -1,4 +1,4 @@
-# !/bin/bash
+#!/bin/bash
 
 # Define the data lists for each method
 declare -a data_list_method1=("wikipedia" "uci" "reddit" "Contacts" "askUbuntu" "mooc" "lastfm" "SocialEvo" "Flights" "myket" "enron" "CanParl")
