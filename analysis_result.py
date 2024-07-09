@@ -30,7 +30,8 @@ for neg in ['rnd', 'hist', 'ind']:
             mask_target = (out_df['NSS'] == neg) & (out_df['DataSets'] == dataset)
             mask_src = (df['model_seed'].str.lower().str.contains(model.lower())) & (df['model_seed'].str.lower().str.contains(neg_mapping[neg])) & (df['dataset'].str.lower().str.contains(dataset.lower()))
             # print(f'Processing {model} on {dataset} with {neg_mapping[neg]}', mask_src.sum())
-            out_df.loc[mask_target, model] = df.loc[mask_src, 'test average_precision'].sum()
+            if(df.loc[mask_src, 'run cost(/epoch)'].values.size > 0):
+                out_df.loc[mask_target, model] = df.loc[mask_src, 'test average_precision'].sum()
             # print(out_df.loc[mask_target, model].values)
     mask_avg_rank = (out_df['NSS'] == neg) & (out_df['DataSets'] == 'Avg.Rank')
     mask_dataset_line = (out_df['NSS'] == neg) & (out_df['DataSets'] != 'Avg.Rank')
