@@ -25,6 +25,9 @@ if [ $method == "EdgeBank" ]; then
                 cmd="CUDA_VISIBLE_DEVICES=$gpu python evaluate_link_prediction.py --num_runs 1 --num_epochs 5 --dataset_name $data --model_name $method --negative_sample_strategy $neg --load_best_configs"
                 echo "$cmd"
                 eval "$cmd"
+                if [ $? -ne 0 ]; then
+                    rm -r $dir_to_check
+                fi
             fi
         done
     done
@@ -38,6 +41,9 @@ else
                 cmd="CUDA_VISIBLE_DEVICES=$gpu python evaluate_link_prediction.py --num_runs 1 --num_epochs 5 --dataset_name $data --model_name $method --negative_sample_strategy $neg --load_best_configs"
                 echo "$cmd"
                 eval "$cmd"
+                if [ $? -ne 0 ]; then
+                    rm -r $dir_to_check
+                fi
             fi
         done
     done
