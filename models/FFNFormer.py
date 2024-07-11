@@ -101,13 +101,13 @@ class FFNFormer(nn.Module):
         else:
             self.neighbor_sampler.set_fanouts([self.max_input_sequence_length,])
         src_node_ids_th, dst_node_ids_th, node_interact_times_th = torch.from_numpy(src_node_ids), torch.from_numpy(dst_node_ids), torch.from_numpy(node_interact_times)
-        # get the first-hop neighbors of source and destination nodes
-        # three lists to store source nodes' first-hop neighbor ids, edge ids and interaction timestamp information, with batch_size as the list length
+        # get the n-hop neighbors of source and destination nodes
+        # three lists to store source nodes' n-hop neighbor ids, edge ids and interaction timestamp information, with batch_size as the list length
         self.neighbor_sampler.neighbor_sample_from_nodes(src_node_ids_th, node_interact_times_th)
         # Shape: (batch_size, max_input_sequence_length)
         src_nodes_neighbor_ids_list, src_nodes_edge_ids_list, src_nodes_neighbor_times_list, src_srcindex_list = \
             self.neighbor_sampler.get_ret()
-        # three lists to store destination nodes' first-hop neighbor ids, edge ids and interaction timestamp information, with batch_size as the list length
+        # three lists to store destination nodes' n-hop neighbor ids, edge ids and interaction timestamp information, with batch_size as the list length
         self.neighbor_sampler.neighbor_sample_from_nodes(dst_node_ids_th, node_interact_times_th)
         dst_nodes_neighbor_ids_list, dst_nodes_edge_ids_list, dst_nodes_neighbor_times_list, dst_srcindex_list = \
             self.neighbor_sampler.get_ret()
@@ -120,7 +120,7 @@ class FFNFormer(nn.Module):
 
         if not no_time:
             globals.timer.start_construct_patchs()
-        # pad the sequences of first-hop neighbors for source and destination nodes
+        # pad the sequences of n-hop neighbors for source and destination nodes
         # src_padded_nodes_neighbor_ids, ndarray, shape (batch_size, src_max_seq_length)
         # src_padded_nodes_edge_ids, ndarray, shape (batch_size, src_max_seq_length)
         # src_padded_nodes_neighbor_times, ndarray, shape (batch_size, src_max_seq_length)
