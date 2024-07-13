@@ -231,12 +231,12 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         args.num_layers = 3
         if args.dataset_name in ['wikipedia']:
             args.num_neighbors = 30
-        elif args.dataset_name in ['reddit', 'myket', 'lastfm', 'enron', 'SocialEvo']:
+        elif args.dataset_name in ['reddit', 'myket', 'lastfm', 'enron']:
             args.num_neighbors = 32
         elif args.dataset_name in ['UNtrade', 'mooc', 'CanParl']:
             args.num_neighbors = 64
-        elif args.dataset_name in ['CanParl']:
-            args.num_neighbors = 256
+        elif args.dataset_name in ['Contact', 'SocialEvo']:
+            args.num_neighbors = 16
         else:
             args.num_neighbors = 32
         if args.dataset_name in ['enron']:
