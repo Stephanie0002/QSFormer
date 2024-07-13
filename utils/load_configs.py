@@ -142,10 +142,10 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
                 args.sample_neighbor_strategy = 'recent'
     elif args.model_name == 'CAWN':
         args.time_scaling_factor = 1e-6
-        if args.dataset_name in ['mooc', 'SocialEvo', 'uci', 'Flights', 'UNtrade', 'UNvote', 'Contacts']:
+        if args.dataset_name in ['mooc', 'uci']:
             args.num_neighbors = 64
-        elif args.dataset_name in ['lastfm', 'CanParl']:
-            args.num_neighbors = 128
+        elif args.dataset_name in ['Contacts', 'SocialEvo', 'Flights']:
+            args.num_neighbors = 16
         else:
             args.num_neighbors = 32
         if args.dataset_name in ['CanParl']:
@@ -233,9 +233,9 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.num_neighbors = 30
         elif args.dataset_name in ['reddit', 'myket', 'lastfm', 'enron']:
             args.num_neighbors = 32
-        elif args.dataset_name in ['UNtrade', 'mooc', 'CanParl']:
+        elif args.dataset_name in ['mooc', 'CanParl']:
             args.num_neighbors = 64
-        elif args.dataset_name in ['Contact', 'SocialEvo']:
+        elif args.dataset_name in ['Contacts', 'SocialEvo']:
             args.num_neighbors = 16
         else:
             args.num_neighbors = 32
