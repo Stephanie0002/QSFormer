@@ -9,8 +9,7 @@ from torch.utils.cpp_extension import CppExtension, CUDAExtension
 module = CppExtension(
     name='cpp_cores',
     sources=[
-        'src/export.cpp',
-        'src/temporal_neighbor_sampler.cpp'
+        'src/export.cpp'
     ],
     include_dirs=['src'],
     extra_compile_args={'cxx': ['-g', '-O3', '-fopenmp', '-std=c++17']}

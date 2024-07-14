@@ -1,4 +1,3 @@
-#include "temporal_neighbor_sampler.h"
 #include "co_counter.h"
 #include "tppr.h"
 #include "sampler.h"
@@ -8,14 +7,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m
     .def("count_nodes_cooccurrence", &countNodesCooccurence, "Function to count node co-occurrences")
     .def("get_neighbors",  &get_neighbors, py::return_value_policy::reference);
-
-    py::class_<TemporalNeighborSampler>(m, "TemporalNeighborSampler", py::module_local())
-        .def(py::init<py::list, py::list, py::list, size_t>())
-        .def("reset", &TemporalNeighborSampler::reset)
-        .def("sample_neighbors", &TemporalNeighborSampler::sample)
-        .def("sample_and_padding_neighbors", &TemporalNeighborSampler::sampleAndPadding)
-        .def("print_adjacency_list", &TemporalNeighborSampler::printAdjacencyList)
-        .def("print_adjacency_lists", &TemporalNeighborSampler::printAdjacencyLists);
 
     py::class_<ParallelSampler>(m, "ParallelSampler")
         .def(py::init<TemporalNeighborBlock &, NodeIDType, EdgeIDType, int,
