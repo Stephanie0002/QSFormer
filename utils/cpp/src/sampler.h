@@ -25,10 +25,6 @@ class ParallelSampler
             num_layers = _fanouts.size();
         }
 
-        // void reset()
-        // {
-        // }
-
         void neighbor_sample_from_nodes(th::Tensor nodes, optional<th::Tensor> root_ts);
         void neighbor_sample_from_nodes_with_before(th::Tensor nodes, th::Tensor root_ts);
         void neighbor_sample_from_nodes_with_before_layer_0(th::Tensor nodes, th::Tensor root_ts);
@@ -86,15 +82,12 @@ void ParallelSampler :: neighbor_sample_from_nodes_with_before_layer_0(th::Tenso
     NodeIDType *srcArray_ptr = get_data_ptr<NodeIDType>(ret.src_index);
     int dim = ret.sample_nodes.size(1);
 
-    // double start_time = omp_get_wtime();
 #pragma omp parallel
 {
     int tid = omp_get_thread_num();
-    unsigned int loc_seed = 0 + tid;// tid + time;
-// #pragma omp parallel for num_threads(threads) default(shared)
+    unsigned int loc_seed = 0 + tid;
 #pragma omp for schedule(static, int(ceil(static_cast<float>(batch_size) / threads)))
     for(int64_t i=0; i<batch_size; i++){
-        // int tid = omp_get_thread_num();    
         NodeIDType node = nodes_data[i];
         TimeStampType rtts = ts_data[i];
         if(node==0) continue;//padding data
@@ -112,10 +105,7 @@ void ParallelSampler :: neighbor_sample_from_nodes_with_before_layer_0(th::Tenso
             std::memcpy(timestampArray_ptr+i*dim+fanout-len, tnb.timestamp[node].data()+start_index, len*sizeof(TimeStampType));
         }
         else{
-            //可选邻居边大于扇出的话需要随机选择fanout个邻居
-            // uniform_int_distribution<> u(0, end_index-1);
-            //cout<<end_index<<endl;
-            // cout<<"start:"<<start_index<<" end:"<<end_index<<endl;
+            //If the optional neighbor edge is larger than the fan out, you need to randomly select fanout neighbors
             for(int j=0; j<fanout;j++){
                 int cid;
                 if(policy == "uniform")
@@ -145,19 +135,15 @@ void ParallelSampler :: neighbor_sample_from_nodes_with_before_layer_1(){
     NodeIDType *nodeArray_ptr = get_data_ptr<NodeIDType>(ret.sample_nodes);
     EdgeIDType *edgeArray_ptr = get_data_ptr<EdgeIDType>(ret.eid);
     TimeStampType *timestampArray_ptr = get_data_ptr<TimeStampType>(ret.sample_nodes_ts);
-    // NodeIDType *srcArray_ptr = get_data_ptr<NodeIDType>(ret.src_index);
     int dim = ret.sample_nodes.size(1);
 
-    // double start_time = omp_get_wtime();
 #pragma omp parallel
 {
     int tid = omp_get_thread_num();
-    unsigned int loc_seed = 0 + tid;// tid + time;
-// #pragma omp parallel for num_threads(threads) default(shared)
+    unsigned int loc_seed = 0 + tid;
 #pragma omp for schedule(static, int(ceil(static_cast<float>(batch_size) / threads)))
     for(int64_t i=0; i<batch_size; i++){
         for(int64_t k=0;k<fanouts[0];k++){
-            // int tid = omp_get_thread_num();
             NodeIDType node = nodeArray_ptr[i*dim+k];
             TimeStampType rtts = timestampArray_ptr[i*dim+k];
             if(node==0) continue;//padding data
@@ -174,11 +160,10 @@ void ParallelSampler :: neighbor_sample_from_nodes_with_before_layer_1(){
                 // std::fill(srcArray_ptr+i*dim+fanouts[0]+fanout*(k+1)-len, srcArray_ptr+i*dim+fanouts[0]+fanout*(k+1), node);
             }
             else{
-                //可选邻居边大于扇出的话需要随机选择fanout个邻居
+                //If the optional neighbor edge is larger than the fan out, you need to randomly select fanout neighbors
                 for(int j=0; j<fanout;j++){
                     int cid;
                     if(policy == "uniform")
-                        // cid = u(e);
                         cid = rand_r(&loc_seed) % (end_index);
                     else if(policy == "weighted"){
                         const vector<WeightType>& ew = tnb.edge_weight[node];

@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 from utils.DataLoader import Data
-from utils.temporal_sampling.src.temporal_sampling.searchsorted import sample_with_pad
+# from utils.temporal_sampling.src.temporal_sampling.searchsorted import sample_with_pad
 
 
 class NeighborSampler:
@@ -384,42 +384,42 @@ class NeighborSampler:
         """
         self.random_state = np.random.RandomState(self.seed)
         
-class GPUNeighborSampler:
-    def __init__(self, g:list, sample_neighbor_strategy: str = 'recent', seed:int = None, device='cuda'):
-        self.sample_neighbor_strategy = sample_neighbor_strategy
-        self.seed = seed
-        self.g = [el.to(device) for el in g]
-        self.dummy_nid = 0
-        self.dummy_eid = 0
+# class GPUNeighborSampler:
+#     def __init__(self, g:list, sample_neighbor_strategy: str = 'recent', seed:int = None, device='cuda'):
+#         self.sample_neighbor_strategy = sample_neighbor_strategy
+#         self.seed = seed
+#         self.g = [el.to(device) for el in g]
+#         self.dummy_nid = 0
+#         self.dummy_eid = 0
         
-    def sample_recent_neighbors(self, node_ids: torch.Tensor, node_interact_times: torch.Tensor, num_neighbors: int = 20):
-        node_ids = torch.from_numpy(node_ids).to(self.g[0].device)
-        node_interact_times = torch.from_numpy(node_interact_times).to(self.g[0].device)
-        neigh_nid, neigh_eid, neigh_ts = sample_with_pad(
-            node_ids, node_interact_times,
-            self.g[0], self.g[1], self.g[2], self.g[3],
-            num_neighbors, self.sample_neighbor_strategy,
-            self.dummy_nid, self.dummy_eid
-        )
-        return neigh_nid, neigh_eid, neigh_ts
+#     def sample_recent_neighbors(self, node_ids: torch.Tensor, node_interact_times: torch.Tensor, num_neighbors: int = 20):
+#         node_ids = torch.from_numpy(node_ids).to(self.g[0].device)
+#         node_interact_times = torch.from_numpy(node_interact_times).to(self.g[0].device)
+#         neigh_nid, neigh_eid, neigh_ts = sample_with_pad(
+#             node_ids, node_interact_times,
+#             self.g[0], self.g[1], self.g[2], self.g[3],
+#             num_neighbors, self.sample_neighbor_strategy,
+#             self.dummy_nid, self.dummy_eid
+#         )
+#         return neigh_nid, neigh_eid, neigh_ts
         
-    def sample_uniform_neighbors(self, node_ids: torch.Tensor, node_interact_times: torch.Tensor, num_neighbors: int = 20):
-        node_ids = torch.from_numpy(node_ids).to(self.g[0].device)
-        node_interact_times = torch.from_numpy(node_interact_times).to(self.g[0].device)
-        neigh_nid, neigh_eid, neigh_ts = sample_with_pad(
-            node_ids, node_interact_times,
-            self.g[0], self.g[1], self.g[2], self.g[3],
-            num_neighbors, self.sample_neighbor_strategy,
-            self.dummy_nid, self.dummy_eid
-        )
-        return neigh_nid, neigh_eid, neigh_ts
+#     def sample_uniform_neighbors(self, node_ids: torch.Tensor, node_interact_times: torch.Tensor, num_neighbors: int = 20):
+#         node_ids = torch.from_numpy(node_ids).to(self.g[0].device)
+#         node_interact_times = torch.from_numpy(node_interact_times).to(self.g[0].device)
+#         neigh_nid, neigh_eid, neigh_ts = sample_with_pad(
+#             node_ids, node_interact_times,
+#             self.g[0], self.g[1], self.g[2], self.g[3],
+#             num_neighbors, self.sample_neighbor_strategy,
+#             self.dummy_nid, self.dummy_eid
+#         )
+#         return neigh_nid, neigh_eid, neigh_ts
     
-    def reset_random_state(self):
-        """
-        reset the random state by self.seed
-        :return:
-        """
-        self.random_state = np.random.RandomState(self.seed)
+#     def reset_random_state(self):
+#         """
+#         reset the random state by self.seed
+#         :return:
+#         """
+#         self.random_state = np.random.RandomState(self.seed)
 
 
 class HistoricalNeighborSampler:
