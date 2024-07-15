@@ -155,7 +155,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         args.sample_neighbor_strategy = 'time_interval_aware'
     elif args.model_name == 'EdgeBank':
         if args.negative_sample_strategy == 'random':
-            if args.dataset_name in ['wikipedia', 'reddit', 'myket', 'uci', 'Flights']:
+            if args.dataset_name in ['wikipedia', 'reddit', 'myket', 'uci', 'askUbuntu', 'Flights']:
                 args.edge_bank_memory_mode = 'unlimited_memory'
             elif args.dataset_name in ['mooc', 'lastfm', 'enron', 'CanParl', 'USLegis']:
                 args.edge_bank_memory_mode = 'time_window_memory'
@@ -167,7 +167,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
                 assert args.dataset_name == 'SocialEvo'
                 args.edge_bank_memory_mode = 'repeat_threshold_memory'
         elif args.negative_sample_strategy == 'historical':
-            if args.dataset_name in ['uci', 'CanParl', 'USLegis']:
+            if args.dataset_name in ['uci', 'askUbuntu', 'CanParl', 'USLegis']:
                 args.edge_bank_memory_mode = 'time_window_memory'
                 args.time_window_mode = 'fixed_proportion'
             elif args.dataset_name in ['mooc', 'lastfm', 'enron', 'UNtrade', 'UNvote', 'Contacts']:
@@ -181,7 +181,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             if args.dataset_name in ['USLegis']:
                 args.edge_bank_memory_mode = 'time_window_memory'
                 args.time_window_mode = 'fixed_proportion'
-            elif args.dataset_name in ['uci', 'UNvote']:
+            elif args.dataset_name in ['uci', 'askUbuntu', 'UNvote']:
                 args.edge_bank_memory_mode = 'time_window_memory'
                 args.time_window_mode = 'repeat_interval'
             else:
