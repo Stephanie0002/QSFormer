@@ -350,7 +350,7 @@ def evaluate_edge_bank_link_prediction(args: argparse.Namespace, train_data: Dat
                 _, batch_neg_dst_node_ids = test_neg_edge_sampler.sample(size=len(batch_src_node_ids)*args.test_neg_size)
                 batch_neg_src_node_ids = batch_src_node_ids.repeat(args.test_neg_size)
                 
-            print(batch_neg_src_node_ids.shape, batch_neg_dst_node_ids.shape, batch_src_node_ids.shape, batch_dst_node_ids.shape)
+            # print(batch_neg_src_node_ids.shape, batch_neg_dst_node_ids.shape, batch_src_node_ids.shape, batch_dst_node_ids.shape)
 
             positive_edges = (batch_src_node_ids, batch_dst_node_ids)
             negative_edges = (batch_neg_src_node_ids, batch_neg_dst_node_ids)
