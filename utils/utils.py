@@ -93,7 +93,7 @@ class NegativeEdgeSampler(object):
         self.earliest_time = min(self.unique_interact_times)
         self.last_observed_time = last_observed_time
 
-        if self.negative_sample_strategy != 'random':
+        if self.negative_sample_strategy != 'random' and len(self.unique_src_node_ids)<20000:
             # all the possible edges that connect source nodes in self.unique_src_node_ids with destination nodes in self.unique_dst_node_ids
             self.possible_edges = set((src_node_id, dst_node_id) for src_node_id in self.unique_src_node_ids for dst_node_id in self.unique_dst_node_ids)
 
@@ -167,12 +167,23 @@ class NegativeEdgeSampler(object):
         """
         assert batch_src_node_ids is not None and batch_dst_node_ids is not None
         batch_edges = set((batch_src_node_id, batch_dst_node_id) for batch_src_node_id, batch_dst_node_id in zip(batch_src_node_ids, batch_dst_node_ids))
-        possible_random_edges = list(self.possible_edges - batch_edges)
-        assert len(possible_random_edges) > 0
-        # if replace is True, then a value in the list can be selected multiple times, otherwise, a value can be selected only once at most
-        random_edge_indices = self.random_state.choice(len(possible_random_edges), size=size, replace=len(possible_random_edges) < size)
-        return np.array([possible_random_edges[random_edge_idx][0] for random_edge_idx in random_edge_indices]), \
-               np.array([possible_random_edges[random_edge_idx][1] for random_edge_idx in random_edge_indices])
+        if len(self.unique_src_node_ids)<20000:
+            possible_random_edges = list(self.possible_edges - batch_edges)
+            assert len(possible_random_edges) > 0
+            # if replace is True, then a value in the list can be selected multiple times, otherwise, a value can be selected only once at most
+            random_edge_indices = self.random_state.choice(len(possible_random_edges), size=size, replace=len(possible_random_edges) < size)
+            return np.array([possible_random_edges[random_edge_idx][0] for random_edge_idx in random_edge_indices]), \
+                np.array([possible_random_edges[random_edge_idx][1] for random_edge_idx in random_edge_indices])
+        else:
+            random_src_indices = self.random_state.choice(len(self.unique_src_node_ids), size=size, replace=len(self.unique_src_node_ids) < size)
+            random_dst_indices = self.random_state.choice(len(self.unique_dst_node_ids), size=size, replace=len(self.unique_dst_node_ids) < size)
+            for i in range(size):
+                while (self.unique_src_node_ids[random_src_indices[i]], self.unique_dst_node_ids[random_dst_indices[i]]) in batch_edges:
+                    random_src_indices[i] = self.random_state.choice(len(self.unique_src_node_ids))
+                    random_dst_indices[i] = self.random_state.choice(len(self.unique_dst_node_ids))
+            return np.array([self.unique_src_node_ids[random_src_idx] for random_src_idx in random_src_indices]), \
+                   np.array([self.unique_dst_node_ids[random_dst_idx] for random_dst_idx in random_dst_indices])
+            
 
     def historical_sample(self, size: int, batch_src_node_ids: np.ndarray, batch_dst_node_ids: np.ndarray,
                           current_batch_start_time: float, current_batch_end_time: float):
