@@ -13,7 +13,7 @@ class EnFormer(nn.Module):
 
     def __init__(self, node_raw_features: np.ndarray, edge_raw_features: np.ndarray, neighbor_sampler: NeighborSampler,
                  time_feat_dim: int, channel_embedding_dim: int, patch_size: int = 1, num_layers: int = 2, num_heads: int = 2,
-                 dropout: float = 0.1, max_input_sequence_length: int = 512, device: str = 'cpu', id_encode = False):
+                 dropout: float = 0.1, max_input_sequence_length: int = 512, device: str = 'cpu', no_id_encode = False):
         """
         DyGFormer model.
         :param node_raw_features: ndarray, shape (num_nodes + 1, node_feat_dim)
@@ -44,12 +44,12 @@ class EnFormer(nn.Module):
         self.dropout = dropout
         self.max_input_sequence_length = max_input_sequence_length
         self.device = device
-        self.id_encode = id_encode
+        self.no_id_encode = no_id_encode
 
         self.time_encoder = TimeEncoder(time_dim=self.time_feat_dim)
         self.node_feat_encoder = FeedForward(self.node_feat_dim, out_dims=channel_embedding_dim, dropout=0., use_single_layer=True)
         self.edge_feat_encoder = FeedForward(self.edge_feat_dim, out_dims=channel_embedding_dim, dropout=0., use_single_layer=True)
-        if id_encode:
+        if not no_id_encode:
             self.frequency_encoder = FixedFrequencyEncoder(channel_embedding_dim)
 
         self.neighbor_co_occurrence_feat_dim = self.channel_embedding_dim
@@ -59,9 +59,9 @@ class EnFormer(nn.Module):
         #         nn.ReLU(),
         #         nn.Linear(in_features=self.neighbor_co_occurrence_feat_dim, out_features=self.neighbor_co_occurrence_feat_dim))
         
-        if not id_encode:
+        if no_id_encode:
             self.neighbor_co_occurrence_encoder = NeighborCooccurrenceEncoder(neighbor_co_occurrence_feat_dim=self.neighbor_co_occurrence_feat_dim, device=self.device)
-        if id_encode:
+        if not no_id_encode:
             self.projection_layer = nn.ModuleDict({
                 'node': nn.Linear(in_features=self.patch_size * self.node_feat_dim, out_features=self.channel_embedding_dim, bias=True),
                 'edge': nn.Linear(in_features=self.patch_size * self.edge_feat_dim, out_features=self.channel_embedding_dim, bias=True),
@@ -142,7 +142,7 @@ class EnFormer(nn.Module):
         # dst_padded_nodes_appearances, Tensor, shape (batch_size, dst_max_seq_length, 2)
         dst_padded_nodes_appearances = torch.from_numpy(dst_padded_nodes_appearances).float().to(self.device)
         # sum the neighbor co-occurrence features in the sequence of source and destination nodes
-        if self.id_encode:
+        if not self.no_id_encode:
             # Tensor, shape (batch_size, src_max_seq_length, neighbor_co_occurrence_feat_dim)
             src_padded_nodes_neighbor_co_occurrence_features = self.frequency_encoder(src_padded_nodes_appearances).sum(dim=2)
             # Tensor, shape (batch_size, dst_max_seq_length, neighbor_co_occurrence_feat_dim)
@@ -367,7 +367,7 @@ class EnFormer(nn.Module):
         patches_nodes_edge_raw_features = torch.stack(patches_nodes_edge_raw_features, dim=1).reshape(batch_size, num_patches, patch_size * self.edge_feat_dim)
         # Tensor, shape (batch_size, num_patches, patch_size * time_feat_dim)
         patches_nodes_neighbor_time_features = torch.stack(patches_nodes_neighbor_time_features, dim=1).reshape(batch_size, num_patches, patch_size * self.time_feat_dim)
-        if self.id_encode:
+        if not self.no_id_encode:
             patches_nodes_neighbor_co_occurrence_features = torch.stack(patches_nodes_neighbor_co_occurrence_features, dim=1).reshape(batch_size, num_patches, patch_size * (self.neighbor_co_occurrence_feat_dim+self.max_input_sequence_length))
         else:
             patches_nodes_neighbor_co_occurrence_features = torch.stack(patches_nodes_neighbor_co_occurrence_features, dim=1).reshape(batch_size, num_patches, patch_size * self.neighbor_co_occurrence_feat_dim)

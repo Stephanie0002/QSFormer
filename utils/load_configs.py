@@ -59,7 +59,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--test_interval_epochs', type=int, default=10, help='how many epochs to perform testing once')
     parser.add_argument('--negative_sample_strategy', type=str, default='random', choices=['random', 'historical', 'inductive'],
                         help='strategy for the negative edge sampling')
-    parser.add_argument('--id_encode', action='store_true', default=True, help='whether to encode identification')
+    parser.add_argument('--no_id_encode', action='store_true', default=False, help='whether to encode identification')
     parser.add_argument('--train_neg_size', type=int, default=1, help='the number of negative samples for each positive sample in training')
     parser.add_argument('--val_neg_size', type=int, default=9, help='the number of negative samples for each positive sample in validation')
     parser.add_argument('--test_neg_size', type=int, default=49, help='the number of negative samples for each positive sample in testing')
@@ -67,6 +67,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--load_model_filename', type=str, help='model param file to be load', default='None')
     
     
+    parser.add_argument('--ablation', action='store_true', default=False, help='whether to set ablation mode')
     parser.add_argument('--load_best_configs', action='store_true', default=False, help='whether to load the best configurations')
     
     try:
@@ -281,10 +282,12 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         else:
             args.dropout = 0.1
     elif args.model_name in ['QSFormer', 'FFNFormer']:
-        args.num_layers = 2
-        args.order = 'gradient-0.08-3'
-        args.num_hops = 2
-        args.num_high_order_neighbors = 3
+        if not args.ablation:
+            args.num_layers = 2
+            args.order = 'gradient-0.08-3'
+            args.num_hops = 2
+            args.num_high_order_neighbors = 3
+        
         if args.dataset_name in ['wikipedia', 'uci', 'SocialEvo']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
