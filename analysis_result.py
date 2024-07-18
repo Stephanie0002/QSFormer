@@ -7,17 +7,17 @@ import re
 data = {
     'NSS': ['rnd'] * 13 + ['hist'] * 13 + ['ind'] * 13,
     'DataSets': ['Wiki', 'UCI', 'Reddit', 'Enron', 'Mooc', 'CanParl', 'LastFM', 'Flights', 'myket', 'SocialEvo', 'Contacts', 'askUbuntu', 'Avg.Rank'] * 3,
-    'JODIE': [None]*39,
-    'DyRep': [None]*39,
-    'TGAT': [None]*39,
-    'TGN': [None]*39,
-    'EdgeBank': [None]*39,
-    'TCL': [None]*39,
-    'GraphMixer': [None]*39,
-    'RepeatMixer': [None]*39,
-    'DyGFormer': [None]*39,
-    'QSFormer': [None]*39,
-    'FFNFormer': [None]*39
+    'JODIE': [0.0]*39,
+    'DyRep': [0.0]*39,
+    'TGAT': [0.0]*39,
+    'TGN': [0.0]*39,
+    'EdgeBank': [0.0]*39,
+    'TCL': [0.0]*39,
+    'GraphMixer': [0.0]*39,
+    'RepeatMixer': [0.0]*39,
+    'DyGFormer': [0.0]*39,
+    'QSFormer': [0.0]*39,
+    'FFNFormer': [0.0]*39
 }
 df = pd.read_excel('results.xlsx').rename(columns=str.lower)
 out_df = pd.DataFrame(data)
@@ -52,8 +52,8 @@ def decimal_format(x):
         return x
 
 # 使用 apply 函数应用这个函数
-out_df.loc[out_df['DataSets'] != 'Avg.Rank'] = out_df.loc[out_df['DataSets'] != 'Avg.Rank'].map(percentage_format)
-out_df.loc[out_df['DataSets'] == 'Avg.Rank'] = out_df.loc[out_df['DataSets'] == 'Avg.Rank'].map(decimal_format)
+out_df.loc[out_df['DataSets'] != 'Avg.Rank'] = out_df.loc[out_df['DataSets'] != 'Avg.Rank'].applymap(percentage_format)
+out_df.loc[out_df['DataSets'] == 'Avg.Rank'] = out_df.loc[out_df['DataSets'] == 'Avg.Rank'].applymap(decimal_format)
 
 print(out_df)
 
