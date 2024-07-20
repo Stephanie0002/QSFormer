@@ -5,19 +5,19 @@ import re
 
 # 创建一个空的 Pandas 数据帧来存储提取的值
 data = {
-    'NSS': ['rnd'] * 13 + ['hist'] * 13 + ['ind'] * 13,
-    'DataSets': ['Wiki', 'UCI', 'Reddit', 'Enron', 'Mooc', 'CanParl', 'LastFM', 'Flights', 'myket', 'SocialEvo', 'Contacts', 'askUbuntu', 'Avg.Rank'] * 3,
-    'JODIE': [0.0]*39,
-    'DyRep': [0.0]*39,
-    'TGAT': [0.0]*39,
-    'TGN': [0.0]*39,
-    'EdgeBank': [0.0]*39,
-    'TCL': [0.0]*39,
-    'GraphMixer': [0.0]*39,
-    'RepeatMixer': [0.0]*39,
-    'DyGFormer': [0.0]*39,
-    'QSFormer': [0.0]*39,
-    'FFNFormer': [0.0]*39
+    'NSS': ['rnd'] * 12 + ['hist'] * 12 + ['ind'] * 12,
+    'DataSets': ['Wiki', 'UCI', 'Reddit', 'Enron', 'Mooc', 'LastFM', 'Flights', 'myket', 'SocialEvo', 'Contacts', 'askUbuntu', 'Avg.Rank'] * 3,
+    'JODIE': [None]*36,
+    'DyRep': [None]*36,
+    'TGAT': [None]*36,
+    'TGN': [None]*36,
+    'EdgeBank': [None]*36,
+    'TCL': [None]*36,
+    'GraphMixer': [None]*36,
+    'RepeatMixer': [None]*36,
+    'DyGFormer': [None]*36,
+    'QSFormer': [None]*36,
+    'FFNFormer': [None]*36
 }
 df = pd.read_excel('results.xlsx').rename(columns=str.lower)
 out_df = pd.DataFrame(data)
@@ -26,7 +26,7 @@ neg_mapping = {'rnd':'random', 'hist':'historical', 'ind':'inductive'}
 
 for neg in ['rnd', 'hist', 'ind']:
     for model in ['JODIE', 'DyRep', 'TGAT', 'TGN', 'EdgeBank', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer', 'FFNFormer']:
-        for dataset in ['Wiki', 'UCI', 'Reddit', 'Enron', 'Mooc', 'CanParl', 'LastFM', 'Flights', 'myket', 'SocialEvo', 'Contacts', 'askUbuntu']:
+        for dataset in ['Wiki', 'UCI', 'Reddit', 'Enron', 'Mooc', 'LastFM', 'Flights', 'myket', 'SocialEvo', 'Contacts', 'askUbuntu']:
             mask_target = (out_df['NSS'] == neg) & (out_df['DataSets'] == dataset)
             mask_src = (df['model_seed'].str.lower().str.contains(model.lower())) & (df['model_seed'].str.lower().str.contains(neg_mapping[neg])) & (df['dataset'].str.lower().str.contains(dataset.lower()))
             # print(f'Processing {model} on {dataset} with {neg_mapping[neg]}', mask_src.sum())
