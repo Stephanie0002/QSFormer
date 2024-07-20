@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the data lists for each method
-declare -a data_list_method1=("wikipedia" "uci" "reddit" "Contacts" "askUbuntu" "mooc" "lastfm" "SocialEvo" "Flights" "myket" "enron" "CanParl")
+declare -a data_list_method1=("wikipedia" "uci" "reddit" "Contacts" "askUbuntu" "mooc" "lastfm" "SocialEvo" "Flights" "myket" "enron")
 # declare -a data_dyg=("CanParl" "USLegis" "UNtrade" "UNvote" "Contacts")  # List of data values for DyGFormer
 declare -a negative_sample_strategy=("random" "historical" "inductive")
 # Read the gpu and method from command-line arguments
