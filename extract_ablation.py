@@ -62,7 +62,7 @@ for root, dirs, files in os.walk(folder_path):
         file_path = os.path.join(root, file_name)
         
         # 读取文件内容
-        if(file_path.find('.adapt')!=-1 or file_path.find('.onehop')!=-1 or file_path.find('.norole')!=-1):
+        if(file_path.find('.adapt')!=-1 or file_path.find('.onehop')!=-1 or file_path.find('.norole')!=-1 or file_path.find('.ap')!=-1):
             with open(file_path, 'r') as file:
                 content = file.read()                    
                 matches = re.findall(r'Epoch: (\d+),', content)
@@ -113,7 +113,7 @@ for root, dirs, files in os.walk(folder_path):
                 df = df[~df['file_path'].str.contains('old')]
                 df = df[~df['file_path'].str.contains('bak')]
                 df = df[df['file_path'].str.contains('FFNFormer|QSFormer', na=False)]
-                df = df[df['file_path'].str.contains('adapt|onehop|norole', na=False)]
+                df = df[df['file_path'].str.contains('adapt|onehop|norole|ap', na=False)]
                 # df = df.sort_values(by='filepath')
 
 # 将数据帧保存到 Excel 表格
