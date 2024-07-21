@@ -307,9 +307,9 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.max_input_sequence_length = 32
             args.patch_size = 1
         assert args.max_input_sequence_length % args.patch_size == 0
-        if args.dataset_name in ['reddit', 'myket', 'UNvote']:
+        if args.dataset_name in ['UNvote']:
             args.dropout = 0.25
-        elif args.dataset_name in ['enron', 'USLegis', 'UNtrade', 'Contacts']:
+        elif args.dataset_name in ['enron', 'USLegis', 'UNtrade', 'Contacts', 'SocialEvo', 'mooc', 'reddit', 'myket']:
             args.dropout = 0.1
         else:
             args.dropout = 0.15
