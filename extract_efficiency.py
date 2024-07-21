@@ -62,21 +62,26 @@ for root, dirs, files in os.walk(folder_path):
         file_path = os.path.join(root, file_name)
         
         # 读取文件内容
-        if(file_path.find('.adapt')!=-1 or file_path.find('.onehop')!=-1 or file_path.find('.norole')!=-1):
+        if(file_path.find('.efficency')!=-1):
             with open(file_path, 'r') as file:
-                content = file.read()                    
-                matches = re.findall(r'Epoch: (\d+),', content)
-                num_epochs = int(matches[-1]) if matches else None
-                if num_epochs:
-                    print(num_epochs)
+                num_epochs = 10
+                content = file.read()
                 
-                # 只取 "get final performance on dataset" 之后的文本
-                acc_content = content.split('get final performance on dataset')[-1]
+                # 只取 Epoch 10 的文本
+                # 使用正则表达式查找Epoch 10的数据
+                epoch_10_pattern = r'Epoch: 10,.*?(?=Epoch: 11|$)'  # 非贪婪匹配直到下一个Epoch或文件结束
+                epoch_10_match = re.search(epoch_10_pattern, content, re.DOTALL)
+                if epoch_10_match:
+                    epoch_10_content = epoch_10_match.group(0)
+                else:
+                    epoch_10_content = ''
+                
+                print(epoch_10_content)
                             
                 # 提取匹配的值            
                 values = {}
                 for key, pattern in patterns.items():
-                    match = re.search(pattern, acc_content)
+                    match = re.search(pattern, epoch_10_content)
                     if match:
                         values[key] = float(match.group(1))
                         if key == 'Run cost(/epoch)' and  num_epochs!=None:
@@ -100,7 +105,7 @@ for root, dirs, files in os.walk(folder_path):
                 }
 
                 # 使用正则表达式提取时间值
-                matches = re.finditer(r"(train time|val time|load feature time|encodeCo time|construct patchs time|transform time|neighbor sample time|try time):(\d+.\d+)", content)
+                matches = re.finditer(r"(train time|val time|load feature time|encodeCo time|construct patchs time|transform time|neighbor sample time|try time):(\d+.\d+)", epoch_10_content)
                 for match in matches:
                     if match:
                         time_type = match.group(1)
@@ -112,10 +117,10 @@ for root, dirs, files in os.walk(folder_path):
                 df = df._append(dict, ignore_index=True)
                 df = df[~df['file_path'].str.contains('old')]
                 df = df[~df['file_path'].str.contains('bak')]
-                df = df[df['file_path'].str.contains('FFNFormer|QSFormer', na=False)]
-                df = df[df['file_path'].str.contains('adapt|onehop|norole', na=False)]
+                # df = df[df['file_path'].str.contains('DyGFormer|FFNFormer|QSFormer', na=False)]
+                df = df[df['file_path'].str.contains('efficiency', na=False)]
                 # df = df.sort_values(by='filepath')
 
 # 将数据帧保存到 Excel 表格
-df.to_excel('results_a.xlsx', index=False)
+df.to_excel('results_e.xlsx', index=False)
 print('Done')
