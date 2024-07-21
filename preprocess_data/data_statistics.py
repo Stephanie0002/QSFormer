@@ -22,4 +22,5 @@ if __name__ == "__main__":
         records.append(info)
 
     info_df = pd.DataFrame.from_records(records)
+    info_df.to_latex('data_statistics.tex', index=False)
     pprint_df(info_df)

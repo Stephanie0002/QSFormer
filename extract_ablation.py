@@ -62,7 +62,10 @@ for root, dirs, files in os.walk(folder_path):
         file_path = os.path.join(root, file_name)
         
         # 读取文件内容
-        if(file_path.find('.adapt')!=-1 or file_path.find('.onehop')!=-1 or file_path.find('.norole')!=-1 or file_path.find('.ap')!=-1):
+        if((file_path.find('.adapt')!=-1 or file_path.find('.onehop')!=-1 or file_path.find('.norole')!=-1 or file_path.find('.ap')!=-1) \
+           and (file_path.find('FFNFormer')!=-1 or file_path.find('QSFormer')!=-1)
+           and (file_path.find('old')==-1 and file_path.find('bak')==-1)
+           and (file_path.find('negative_sampling')==-1)):
             with open(file_path, 'r') as file:
                 content = file.read()                    
                 matches = re.findall(r'Epoch: (\d+),', content)
