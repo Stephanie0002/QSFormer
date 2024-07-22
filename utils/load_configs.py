@@ -304,8 +304,8 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.max_input_sequence_length = 512
             args.patch_size = 16
         else:
-            args.max_input_sequence_length = 32
-            args.patch_size = 1
+            args.max_input_sequence_length = 128
+            args.patch_size = 4
         assert args.max_input_sequence_length % args.patch_size == 0
         if args.dataset_name in ['UNvote']:
             args.dropout = 0.25
@@ -315,6 +315,10 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.dropout = 0.15
     else:
         raise ValueError(f"Wrong value for model_name {args.model_name}!")
+    
+    if args.num_hops==1:
+        args.max_input_sequence_length /= 4
+        args.patch_size /= 4
 
 
 def get_node_classification_args():
