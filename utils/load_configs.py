@@ -19,7 +19,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--gpu', type=int, default=0, help='number of gpu to use')
     
     parser.add_argument('--num_neighbors', type=int, default=20, help='number of neighbors to sample for each node')
-    parser.add_argument('--num_high_order_neighbors', type=int, default=3, help='number of hight order neighbors to sample for each node', choices=[1, 3, 7, 15])
+    parser.add_argument('--num_high_order_neighbors', type=int, default=3, help='number of hight order neighbors to sample for each node')
     parser.add_argument('--num_walk_heads', type=int, default=8, help='number of heads used for the attention in walk encoder')
     parser.add_argument('--num_heads', type=int, default=2, help='number of heads used in attention layer')
     parser.add_argument('--num_layers', type=int, default=2, help='number of model layers')
