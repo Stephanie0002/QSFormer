@@ -94,8 +94,10 @@ class QSFormer(nn.Module):
             globals.timer.start_neighbor_sample()
         
         if(self.hops == 2):
+            assert self.max_input_sequence_length % (self.num_high_order_neighbors+1) == 0, "max_input_sequence_length should be divisible by num_high_order_neighbors+1"
             self.neighbor_sampler.set_fanouts([self.max_input_sequence_length//(self.num_high_order_neighbors+1), self.num_high_order_neighbors])
         elif(self.hops == 3):
+            assert self.max_input_sequence_length % (pow(self.num_high_order_neighbors, 2) + self.num_high_order_neighbors + 1) == 0, "max_input_sequence_length should be divisible by pow(num_high_order_neighbors, 2) + num_high_order_neighbors + 1"
             self.neighbor_sampler.set_fanouts([self.max_input_sequence_length//(pow(self.num_high_order_neighbors, 2) + self.num_high_order_neighbors + 1), self.num_high_order_neighbors, pow(self.num_high_order_neighbors, 2)])
         else:
             self.neighbor_sampler.set_fanouts([self.max_input_sequence_length,])
