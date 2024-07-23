@@ -288,10 +288,10 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.num_hops = 2
             args.num_high_order_neighbors = 3
         
-        if args.dataset_name in ['wikipedia', 'uci', 'SocialEvo']:
+        if args.dataset_name in ['wikipedia', 'uci']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
-        elif args.dataset_name in ['reddit', 'myket']:
+        elif args.dataset_name in ['reddit', 'myket', 'SocialEvo']:
             args.max_input_sequence_length = 256
             args.patch_size = 8
         elif args.dataset_name in ['mooc', 'Flights', 'USLegis', 'UNtrade','Flights', 'lastfm', 'CanParl']:
@@ -307,14 +307,18 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.max_input_sequence_length = 128
             args.patch_size = 4
         assert args.max_input_sequence_length % args.patch_size == 0
-        if args.dataset_name in ['UNvote']:
+        if args.dataset_name in ['reddit', 'myket','UNvote']:
             args.dropout = 0.25
-        elif args.dataset_name in ['enron', 'USLegis', 'UNtrade', 'Contacts', 'SocialEvo', 'mooc', 'reddit', 'myket']:
+        elif args.dataset_name in ['enron', 'USLegis', 'UNtrade', 'Contacts']:
             args.dropout = 0.1
         else:
             args.dropout = 0.15
     else:
         raise ValueError(f"Wrong value for model_name {args.model_name}!")
+    
+    if args.num_hops==1 and args.ablation:
+        args.max_input_sequence_length //= 4
+        args.patch_size //= 4
 
 
 def get_node_classification_args():

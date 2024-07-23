@@ -3,8 +3,8 @@
 
 gpu=$1
 
-declare -a methods_list=("QSFormer" "FFNFormer")
-declare -a data_list=("uci" "Contacts" "askUbuntu" "mooc" "lastfm" "SocialEvo" "wikipedia" "myket")
+declare -a methods_list=("QSFormer")
+declare -a data_list=("uci" "mooc" "myket")
 
 
 for data in "${data_list[@]}"; do

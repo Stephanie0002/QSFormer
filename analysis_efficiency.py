@@ -5,23 +5,23 @@ import re
 
 # 创建一个空的 Pandas 数据帧来存储提取的值
 data = {
-    'DataSets': ['Wiki', 'UCI', 'Reddit', 'Enron', 'Mooc', 'LastFM', 'Flights', 'myket', 'SocialEvo', 'Contacts', 'askUbuntu', 'Avg.Rank'],
-    'JODIE': [1e6]*12,
-    'DyRep': [1e6]*12,
-    'TGAT': [1e6]*12,
-    'TGN': [1e6]*12,
-    'TCL': [1e6]*12,
-    'GraphMixer': [1e6]*12,
-    'RepeatMixer': [1e6]*12,
-    'DyGFormer': [1e6]*12,
-    'QSFormer': [1e6]*12,
-    'FFNFormer': [1e6]*12
+    'DataSets': ['Wiki', 'UCI', 'Reddit', 'Enron', 'Mooc', 'LastFM', 'Flights', 'myket', 'SocialEvo', 'Contacts', 'Avg.Rank'],
+    'JODIE': [1e6]*11,
+    'DyRep': [1e6]*11,
+    'TGAT': [1e6]*11,
+    'TGN': [1e6]*11,
+    'TCL': [1e6]*11,
+    'GraphMixer': [1e6]*11,
+    'RepeatMixer': [1e6]*11,
+    'DyGFormer': [1e6]*11,
+    'QSFormer': [1e6]*11,
+    # 'FFNFormer': [1e6]*11
 }
 df = pd.read_excel('results_e.xlsx').rename(columns=str.lower)
 out_df = pd.DataFrame(data)
 
-for model in ['JODIE', 'DyRep', 'TGAT', 'TGN', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer', 'FFNFormer']:
-    for dataset in ['Wiki', 'UCI', 'Reddit', 'Enron', 'Mooc', 'LastFM', 'Flights', 'myket', 'SocialEvo', 'Contacts', 'askUbuntu']:
+for model in ['JODIE', 'DyRep', 'TGAT', 'TGN', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer']:
+    for dataset in ['Wiki', 'UCI', 'Reddit', 'Enron', 'Mooc', 'LastFM', 'Flights', 'myket', 'SocialEvo', 'Contacts']:
         mask_target = (out_df['DataSets'] == dataset)
         mask_src = (df['model_seed'].str.lower().str.contains(model.lower())) & (df['dataset'].str.lower().str.contains(dataset.lower()))
         # print(f'Processing {model} on {dataset} with {neg_mapping[neg]}', mask_src.sum())
@@ -30,8 +30,8 @@ for model in ['JODIE', 'DyRep', 'TGAT', 'TGN', 'TCL', 'GraphMixer', 'RepeatMixer
         # print(out_df.loc[mask_target, model].values)
 mask_avg_rank = (out_df['DataSets'] == 'Avg.Rank')
 mask_dataset_line = (out_df['DataSets'] != 'Avg.Rank')
-# print(f'Processing {neg}\n', out_df.loc[mask_dataset_line, ['JODIE', 'DyRep', 'TGAT', 'TGN', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer', 'FFNFormer']].rank(axis=1, method='min', ascending=False))
-out_df.iloc[np.where(mask_avg_rank)[0], 1:] = out_df.loc[mask_dataset_line, ['JODIE', 'DyRep', 'TGAT', 'TGN', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer', 'FFNFormer']].rank(axis=1, method='max', ascending=True).mean(axis=0)
+# print(f'Processing {neg}\n', out_df.loc[mask_dataset_line, ['JODIE', 'DyRep', 'TGAT', 'TGN', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer']].rank(axis=1, method='min', ascending=False))
+out_df.iloc[np.where(mask_avg_rank)[0], 1:] = out_df.loc[mask_dataset_line, ['JODIE', 'DyRep', 'TGAT', 'TGN', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer']].rank(axis=1, method='max', ascending=True).mean(axis=0)
 
 def percentage_format(x):
     if isinstance(x, (int, float)):

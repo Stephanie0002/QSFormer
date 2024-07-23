@@ -3,7 +3,7 @@
 # Define the data lists for each method
 declare -a data_list_method1=("wikipedia" "uci" "reddit" "Contacts" "askUbuntu" "mooc" "lastfm" "SocialEvo" "Flights" "myket" "enron")
 # "QSFormer" "FFNFormer" "DyGFormer" "JODIE" "DyRep" "TGAT" "TGN" "TCL" "GraphMixer" "RepeatMixer"
-declare -a methods_list=("QSFormer" "FFNFormer" "DyGFormer")
+declare -a methods_list=("QSFormer" "DyGFormer")
 # declare -a data_dyg=("CanParl" "USLegis" "UNtrade" "UNvote" "Contacts")  # List of data values for DyGFormer
 
 # Read the gpu and method from command-line arguments
