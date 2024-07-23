@@ -793,7 +793,7 @@ def get_neighbor_sampler(model_name: str, data: Data, sample_neighbor_strategy: 
                             torch.from_numpy(col).long().contiguous(), max_node_id+1, 0, 
                             torch.from_numpy(eid).long().contiguous(), None, 
                             torch.from_numpy(timestamp).contiguous())
-        return ParallelSampler(tnb, max_node_id+1, data.num_interactions, 10, [32,3], sample_neighbor_strategy)
+        return ParallelSampler(tnb, max_node_id+1, data.num_interactions, 32, [32,3], sample_neighbor_strategy)
     elif model_name in ['TpprFormer',]:
         pass
     else:
