@@ -35,6 +35,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--position_feat_dim', type=int, default=172, help='dimension of the position embedding')
     parser.add_argument('--channel_embedding_dim', type=int, default=50, help='dimension of each channel embedding')
     parser.add_argument('--cross_edge_neighbor_feat_dim', type=int, default=50, help='dimension of cross-edge neighbor feature')
+    parser.add_argument('--dim_expansion_factor', type=int, default=4, help='dimension expansion factor of transformer encoder')
     
     
     parser.add_argument('--walk_length', type=int, default=1, help='length of each random walk')

@@ -14,7 +14,7 @@ class QSFormer(nn.Module):
     def __init__(self, node_raw_features: np.ndarray, edge_raw_features: np.ndarray, neighbor_sampler: NeighborSampler,
                  time_feat_dim: int, channel_embedding_dim: int, cross_edge_neighbor_feat_dim: int, patch_size: int = 1, 
                  num_layers: int = 2, num_heads: int = 2, dropout: float = 0.1, max_input_sequence_length: int = 512, 
-                 num_high_order_neighbors: int = 3, device: str = 'cpu', hops: int = 2, no_id_encode = False):
+                 num_high_order_neighbors: int = 3, device: str = 'cpu', hops: int = 2, no_id_encode = False, dim_expansion_factor: int = 4):
         """
         DyGFormer model.
         :param node_raw_features: ndarray, shape (num_nodes + 1, node_feat_dim)
@@ -48,6 +48,7 @@ class QSFormer(nn.Module):
         self.device = device
         self.hops = hops
         self.no_id_encode = no_id_encode
+        self.dim_expansion_factor = dim_expansion_factor
         
         self.cross_edge_neighbor_feat_dim = cross_edge_neighbor_feat_dim
 
@@ -68,7 +69,7 @@ class QSFormer(nn.Module):
         self.num_channels = 4
 
         self.transformers = nn.ModuleList([
-            TransformerEncoder(attention_dim=self.num_channels * self.channel_embedding_dim, num_heads=self.num_heads, dropout=self.dropout)
+            TransformerEncoder(attention_dim=self.num_channels * self.channel_embedding_dim, num_heads=self.num_heads, dropout=self.dropout, dim_expansion_factor=self.dim_expansion_factor)
             for _ in range(self.num_layers)
         ])
 
@@ -413,7 +414,7 @@ class QSFormer(nn.Module):
 
 
 class TransformerEncoder(nn.Module):
-    def __init__(self, attention_dim: int, num_heads: int, dropout: float = 0.1, num_channels: int = 4):
+    def __init__(self, attention_dim: int, num_heads: int, dropout: float = 0.1, num_channels: int = 4, dim_expansion_factor: int = 4):
         """
         TransformerEncoder constructor.
 
@@ -427,8 +428,8 @@ class TransformerEncoder(nn.Module):
             
         self.dropout = nn.Dropout(dropout)
         self.linear_layers = nn.ModuleList([
-            nn.Linear(in_features=attention_dim, out_features=4 * attention_dim),
-            nn.Linear(in_features=4 * attention_dim, out_features=attention_dim)
+            nn.Linear(in_features=attention_dim, out_features=dim_expansion_factor * attention_dim),
+            nn.Linear(in_features=dim_expansion_factor * attention_dim, out_features=attention_dim)
         ])
         self.norm_layers = nn.ModuleList([
             nn.LayerNorm(attention_dim),
