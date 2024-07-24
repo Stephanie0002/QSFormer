@@ -117,31 +117,27 @@ class QSFormer(nn.Module):
         # print("src_neighbor_padding_size", self.src_neighbor_padding_size)
         # print("dst_neighbor_padding_size", self.dst_neighbor_padding_size)
         
-        src_nodes_neighbor_ids_list, src_nodes_edge_ids_list, src_nodes_neighbor_times_list = src_nodes_neighbor_ids_list.numpy(), src_nodes_edge_ids_list.numpy(), src_nodes_neighbor_times_list.numpy()
-        dst_nodes_neighbor_ids_list, dst_nodes_edge_ids_list, dst_nodes_neighbor_times_list = dst_nodes_neighbor_ids_list.numpy(), dst_nodes_edge_ids_list.numpy(), dst_nodes_neighbor_times_list.numpy()
+        src_padded_nodes_neighbor_ids, src_padded_nodes_edge_ids, src_padded_nodes_neighbor_times = src_nodes_neighbor_ids_list.numpy(), src_nodes_edge_ids_list.numpy(), src_nodes_neighbor_times_list.numpy()
+        dst_padded_nodes_neighbor_ids, dst_padded_nodes_edge_ids, dst_padded_nodes_neighbor_times = dst_nodes_neighbor_ids_list.numpy(), dst_nodes_edge_ids_list.numpy(), dst_nodes_neighbor_times_list.numpy()
+
+        # # pad the sequences of n-hop neighbors for source and destination nodes
+        # # src_padded_nodes_neighbor_ids, ndarray, shape (batch_size, src_max_seq_length)
+        # # src_padded_nodes_edge_ids, ndarray, shape (batch_size, src_max_seq_length)
+        # # src_padded_nodes_neighbor_times, ndarray, shape (batch_size, src_max_seq_length)
+        # src_padded_nodes_neighbor_ids, src_padded_nodes_edge_ids, src_padded_nodes_neighbor_times = \
+        #     self.pad_sequences(node_ids=src_node_ids, node_interact_times=node_interact_times, nodes_neighbor_ids_list=src_nodes_neighbor_ids_list,
+        #                        nodes_edge_ids_list=src_nodes_edge_ids_list, nodes_neighbor_times_list=src_nodes_neighbor_times_list,
+        #                        patch_size=self.patch_size, max_input_sequence_length=self.max_input_sequence_length)
+
+        # # dst_padded_nodes_neighbor_ids, ndarray, shape (batch_size, dst_max_seq_length)
+        # # dst_padded_nodes_edge_ids, ndarray, shape (batch_size, dst_max_seq_length)
+        # # dst_padded_nodes_neighbor_times, ndarray, shape (batch_size, dst_max_seq_length)
+        # dst_padded_nodes_neighbor_ids, dst_padded_nodes_edge_ids, dst_padded_nodes_neighbor_times = \
+        #     self.pad_sequences(node_ids=dst_node_ids, node_interact_times=node_interact_times, nodes_neighbor_ids_list=dst_nodes_neighbor_ids_list,
+        #                        nodes_edge_ids_list=dst_nodes_edge_ids_list, nodes_neighbor_times_list=dst_nodes_neighbor_times_list,
+        #                        patch_size=self.patch_size, max_input_sequence_length=self.max_input_sequence_length)
         if not no_time:
             globals.timer.end_neighbor_sample()
-
-        if not no_time:
-            globals.timer.start_construct_patchs()
-        # pad the sequences of n-hop neighbors for source and destination nodes
-        # src_padded_nodes_neighbor_ids, ndarray, shape (batch_size, src_max_seq_length)
-        # src_padded_nodes_edge_ids, ndarray, shape (batch_size, src_max_seq_length)
-        # src_padded_nodes_neighbor_times, ndarray, shape (batch_size, src_max_seq_length)
-        src_padded_nodes_neighbor_ids, src_padded_nodes_edge_ids, src_padded_nodes_neighbor_times = \
-            self.pad_sequences(node_ids=src_node_ids, node_interact_times=node_interact_times, nodes_neighbor_ids_list=src_nodes_neighbor_ids_list,
-                               nodes_edge_ids_list=src_nodes_edge_ids_list, nodes_neighbor_times_list=src_nodes_neighbor_times_list,
-                               patch_size=self.patch_size, max_input_sequence_length=self.max_input_sequence_length)
-
-        # dst_padded_nodes_neighbor_ids, ndarray, shape (batch_size, dst_max_seq_length)
-        # dst_padded_nodes_edge_ids, ndarray, shape (batch_size, dst_max_seq_length)
-        # dst_padded_nodes_neighbor_times, ndarray, shape (batch_size, dst_max_seq_length)
-        dst_padded_nodes_neighbor_ids, dst_padded_nodes_edge_ids, dst_padded_nodes_neighbor_times = \
-            self.pad_sequences(node_ids=dst_node_ids, node_interact_times=node_interact_times, nodes_neighbor_ids_list=dst_nodes_neighbor_ids_list,
-                               nodes_edge_ids_list=dst_nodes_edge_ids_list, nodes_neighbor_times_list=dst_nodes_neighbor_times_list,
-                               patch_size=self.patch_size, max_input_sequence_length=self.max_input_sequence_length)
-        if not no_time:
-            globals.timer.end_construct_patchs()
 
         if not no_time:
             globals.timer.start_encodeCo()

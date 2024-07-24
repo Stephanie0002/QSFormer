@@ -88,11 +88,7 @@ class DyGFormer(nn.Module):
             self.neighbor_sampler.get_historical_neighbors(node_ids=dst_node_ids, node_interact_times=node_interact_times, num_neighbors=self.max_input_sequence_length-1)
             # self.neighbor_sampler.get_all_first_hop_neighbors(node_ids=dst_node_ids, node_interact_times=node_interact_times)
             # self.neighbor_sampler.sample_recent_neighbors(node_ids=dst_node_ids, node_interact_times=node_interact_times, num_neighbors=self.max_input_sequence_length)
-        if not no_time:
-            globals.timer.end_neighbor_sample()
-
-        if not no_time:
-            globals.timer.start_construct_patchs()
+            
         # pad the sequences of first-hop neighbors for source and destination nodes
         # src_padded_nodes_neighbor_ids, ndarray, shape (batch_size, src_max_seq_length)
         # src_padded_nodes_edge_ids, ndarray, shape (batch_size, src_max_seq_length)
@@ -110,7 +106,7 @@ class DyGFormer(nn.Module):
                                nodes_edge_ids_list=dst_nodes_edge_ids_list, nodes_neighbor_times_list=dst_nodes_neighbor_times_list,
                                patch_size=self.patch_size, max_input_sequence_length=self.max_input_sequence_length)
         if not no_time:
-            globals.timer.end_construct_patchs()
+            globals.timer.end_neighbor_sample()
 
         if not no_time:
             globals.timer.start_encodeCo()

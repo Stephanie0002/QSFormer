@@ -122,6 +122,9 @@ void ParallelSampler :: neighbor_sample_from_nodes_with_before_layer_0(th::Tenso
                 srcArray_ptr[offset] = 1;
             }
         }
+        nodeArray_ptr[0] = node;
+        edgeArray_ptr[0] = 0;
+        timestampArray_ptr[0] = rtts;
     }
 }
     py::gil_scoped_acquire acquire;
