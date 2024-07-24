@@ -78,8 +78,8 @@ class QSFormer(nn.Module):
             nn.Linear(in_features=self.num_channels * self.channel_embedding_dim, out_features=self.node_raw_features.shape[1], bias=True)
         ])
         
-    def get_neighbor_padding_size(self):
-        return self.src_neighbor_padding_size, self.dst_neighbor_padding_size
+    # def get_neighbor_padding_size(self):
+    #     return self.src_neighbor_padding_size, self.dst_neighbor_padding_size
         
 
     def compute_src_dst_node_temporal_embeddings(self, src_node_ids: np.ndarray, dst_node_ids: np.ndarray, node_interact_times: np.ndarray, no_time: bool=False):
@@ -106,19 +106,19 @@ class QSFormer(nn.Module):
         # three lists to store source nodes' n-hop neighbor ids, edge ids and interaction timestamp information, with batch_size as the list length
         self.neighbor_sampler.neighbor_sample_from_nodes(src_node_ids_th, node_interact_times_th)
         # Shape: (batch_size, max_input_sequence_length)
-        src_nodes_neighbor_ids_list, src_nodes_edge_ids_list, src_nodes_neighbor_times_list, src_srcindex_list = \
+        src_padded_nodes_neighbor_ids, src_padded_nodes_edge_ids, src_padded_nodes_neighbor_times =  \
             self.neighbor_sampler.get_ret()
         # three lists to store destination nodes' n-hop neighbor ids, edge ids and interaction timestamp information, with batch_size as the list length
         self.neighbor_sampler.neighbor_sample_from_nodes(dst_node_ids_th, node_interact_times_th)
-        dst_nodes_neighbor_ids_list, dst_nodes_edge_ids_list, dst_nodes_neighbor_times_list, dst_srcindex_list = \
+        dst_padded_nodes_neighbor_ids, dst_padded_nodes_edge_ids, dst_padded_nodes_neighbor_times = \
             self.neighbor_sampler.get_ret()
         
-        self.src_neighbor_padding_size, self.dst_neighbor_padding_size = torch.sum(src_nodes_neighbor_ids_list==0, axis=1), torch.sum(dst_nodes_neighbor_ids_list==0, axis=1)
+        # self.src_neighbor_padding_size, self.dst_neighbor_padding_size = torch.sum(src_nodes_neighbor_ids_list==0, axis=1), torch.sum(dst_nodes_neighbor_ids_list==0, axis=1)
         # print("src_neighbor_padding_size", self.src_neighbor_padding_size)
         # print("dst_neighbor_padding_size", self.dst_neighbor_padding_size)
         
-        src_padded_nodes_neighbor_ids, src_padded_nodes_edge_ids, src_padded_nodes_neighbor_times = src_nodes_neighbor_ids_list.numpy(), src_nodes_edge_ids_list.numpy(), src_nodes_neighbor_times_list.numpy()
-        dst_padded_nodes_neighbor_ids, dst_padded_nodes_edge_ids, dst_padded_nodes_neighbor_times = dst_nodes_neighbor_ids_list.numpy(), dst_nodes_edge_ids_list.numpy(), dst_nodes_neighbor_times_list.numpy()
+        # src_padded_nodes_neighbor_ids, src_padded_nodes_edge_ids, src_padded_nodes_neighbor_times = src_nodes_neighbor_ids_list.numpy(), src_nodes_edge_ids_list.numpy(), src_nodes_neighbor_times_list.numpy()
+        # dst_padded_nodes_neighbor_ids, dst_padded_nodes_edge_ids, dst_padded_nodes_neighbor_times = dst_nodes_neighbor_ids_list.numpy(), dst_nodes_edge_ids_list.numpy(), dst_nodes_neighbor_times_list.numpy()
 
         # # pad the sequences of n-hop neighbors for source and destination nodes
         # # src_padded_nodes_neighbor_ids, ndarray, shape (batch_size, src_max_seq_length)
@@ -142,7 +142,7 @@ class QSFormer(nn.Module):
         if not no_time:
             globals.timer.start_encodeCo()
         from utils.cpp.src.cpp_cores import count_nodes_cooccurrence
-        src_padded_nodes_appearances, dst_padded_nodes_appearances = count_nodes_cooccurrence(src_padded_nodes_neighbor_ids, dst_padded_nodes_neighbor_ids, 10)
+        src_padded_nodes_appearances, dst_padded_nodes_appearances = count_nodes_cooccurrence(src_padded_nodes_neighbor_ids.numpy(), dst_padded_nodes_neighbor_ids.numpy(), 32)
         # src_padded_nodes_appearances, Tensor, shape (batch_size, src_max_seq_length, 2)
         # dst_padded_nodes_appearances, Tensor, shape (batch_size, dst_max_seq_length, 2)
         src_padded_nodes_appearances, dst_padded_nodes_appearances = torch.from_numpy(src_padded_nodes_appearances).float().to(self.device), torch.from_numpy(dst_padded_nodes_appearances).float().to(self.device)
@@ -155,15 +155,18 @@ class QSFormer(nn.Module):
         dst_padded_nodes_neighbor_co_occurrence_features = self.frequency_encoder(dst_padded_nodes_appearances).sum(dim=2)
             # self.neighbor_co_occurrence_encode_layer(dst_padded_nodes_appearances.unsqueeze(dim=-1)).sum(dim=2)
         # add identity encoding for the same frequency nodes
+        
+        src_padded_nodes_neighbor_ids, dst_padded_nodes_neighbor_ids = src_padded_nodes_neighbor_ids.to(self.device), dst_padded_nodes_neighbor_ids.to(self.device)
+        src_padded_nodes_edge_ids, dst_padded_nodes_edge_ids = src_padded_nodes_edge_ids.to(self.device), dst_padded_nodes_edge_ids.to(self.device)
+        src_padded_nodes_neighbor_times, dst_padded_nodes_neighbor_times = src_padded_nodes_neighbor_times.float().to(self.device), dst_padded_nodes_neighbor_times.float().to(self.device)
+        
         if not self.no_id_encode:
-            src_padded_nodes_neighbor_ids_th = torch.from_numpy(src_padded_nodes_neighbor_ids).to(self.device)
-            src_neigh_mask = src_padded_nodes_neighbor_ids_th.unsqueeze(1) == src_padded_nodes_neighbor_ids_th.unsqueeze(2)
-            src_neigh_mask = src_neigh_mask&(src_padded_nodes_neighbor_ids_th.unsqueeze(1)!=0)
+            src_neigh_mask = src_padded_nodes_neighbor_ids.unsqueeze(1) == src_padded_nodes_neighbor_ids.unsqueeze(2)
+            src_neigh_mask = src_neigh_mask&(src_padded_nodes_neighbor_ids.unsqueeze(1)!=0)
             src_iden_encode = src_neigh_mask.float()
             src_padded_nodes_neighbor_co_occurrence_features = torch.cat([src_padded_nodes_neighbor_co_occurrence_features, src_iden_encode], dim=2)
-            dst_padded_nodes_neighbor_ids_th = torch.from_numpy(dst_padded_nodes_neighbor_ids).to(self.device)
-            dst_neigh_mask = dst_padded_nodes_neighbor_ids_th.unsqueeze(1) == dst_padded_nodes_neighbor_ids_th.unsqueeze(2)
-            dst_neigh_mask = dst_neigh_mask&(dst_padded_nodes_neighbor_ids_th.unsqueeze(1)!=0)
+            dst_neigh_mask = dst_padded_nodes_neighbor_ids.unsqueeze(1) == dst_padded_nodes_neighbor_ids.unsqueeze(2)
+            dst_neigh_mask = dst_neigh_mask&(dst_padded_nodes_neighbor_ids.unsqueeze(1)!=0)
             dst_iden_encode = dst_neigh_mask.float()
             dst_padded_nodes_neighbor_co_occurrence_features = torch.cat([dst_padded_nodes_neighbor_co_occurrence_features, dst_iden_encode], dim=2)
             
@@ -289,55 +292,55 @@ class QSFormer(nn.Module):
 
         return src_node_embeddings, dst_node_embeddings
 
-    def pad_sequences(self, node_ids: np.ndarray, node_interact_times: np.ndarray, nodes_neighbor_ids_list: list, nodes_edge_ids_list: list,
-                      nodes_neighbor_times_list: list, patch_size: int = 1, max_input_sequence_length: int = 256):
-        """
-        pad the sequences for nodes in node_ids
-        :param node_ids: ndarray, shape (batch_size, )
-        :param node_interact_times: ndarray, shape (batch_size, )
-        :param nodes_neighbor_ids_list: list of ndarrays, each ndarray contains neighbor ids for nodes in node_ids
-        :param nodes_edge_ids_list: list of ndarrays, each ndarray contains edge ids for nodes in node_ids
-        :param nodes_neighbor_times_list: list of ndarrays, each ndarray contains neighbor interaction timestamp for nodes in node_ids
-        :param patch_size: int, patch size
-        :param max_input_sequence_length: int, maximal number of neighbors for each node
-        :return:
-        """
-        assert max_input_sequence_length - 1 > 0, 'Maximal number of neighbors for each node should be greater than 1!'
-        max_seq_length = 0
-        # first cut the sequence of nodes whose number of neighbors is more than max_input_sequence_length - 1 (we need to include the target node in the sequence)
-        for idx in range(len(nodes_neighbor_ids_list)):
-            assert len(nodes_neighbor_ids_list[idx]) == len(nodes_edge_ids_list[idx]) == len(nodes_neighbor_times_list[idx])
-            if len(nodes_neighbor_ids_list[idx]) > max_seq_length:
-                max_seq_length = len(nodes_neighbor_ids_list[idx])-1
+    # def pad_sequences(self, node_ids: np.ndarray, node_interact_times: np.ndarray, nodes_neighbor_ids_list: list, nodes_edge_ids_list: list,
+    #                   nodes_neighbor_times_list: list, patch_size: int = 1, max_input_sequence_length: int = 256):
+    #     """
+    #     pad the sequences for nodes in node_ids
+    #     :param node_ids: ndarray, shape (batch_size, )
+    #     :param node_interact_times: ndarray, shape (batch_size, )
+    #     :param nodes_neighbor_ids_list: list of ndarrays, each ndarray contains neighbor ids for nodes in node_ids
+    #     :param nodes_edge_ids_list: list of ndarrays, each ndarray contains edge ids for nodes in node_ids
+    #     :param nodes_neighbor_times_list: list of ndarrays, each ndarray contains neighbor interaction timestamp for nodes in node_ids
+    #     :param patch_size: int, patch size
+    #     :param max_input_sequence_length: int, maximal number of neighbors for each node
+    #     :return:
+    #     """
+    #     assert max_input_sequence_length - 1 > 0, 'Maximal number of neighbors for each node should be greater than 1!'
+    #     max_seq_length = 0
+    #     # first cut the sequence of nodes whose number of neighbors is more than max_input_sequence_length - 1 (we need to include the target node in the sequence)
+    #     for idx in range(len(nodes_neighbor_ids_list)):
+    #         assert len(nodes_neighbor_ids_list[idx]) == len(nodes_edge_ids_list[idx]) == len(nodes_neighbor_times_list[idx])
+    #         if len(nodes_neighbor_ids_list[idx]) > max_seq_length:
+    #             max_seq_length = len(nodes_neighbor_ids_list[idx])-1
 
-        # include the target node itself
-        max_seq_length += 1
-        if max_seq_length % patch_size != 0:
-            max_seq_length += (patch_size - max_seq_length % patch_size)
-        assert max_seq_length % patch_size == 0
+    #     # include the target node itself
+    #     max_seq_length += 1
+    #     if max_seq_length % patch_size != 0:
+    #         max_seq_length += (patch_size - max_seq_length % patch_size)
+    #     assert max_seq_length % patch_size == 0
 
-        # pad the sequences
-        # three ndarrays with shape (batch_size, max_seq_length)
-        padded_nodes_neighbor_ids = np.zeros((len(node_ids), max_input_sequence_length)).astype(np.longlong)
-        padded_nodes_edge_ids = np.zeros((len(node_ids), max_input_sequence_length)).astype(np.longlong)
-        padded_nodes_neighbor_times = np.zeros((len(node_ids), max_input_sequence_length)).astype(np.float32)
+    #     # pad the sequences
+    #     # three ndarrays with shape (batch_size, max_seq_length)
+    #     padded_nodes_neighbor_ids = np.zeros((len(node_ids), max_input_sequence_length)).astype(np.longlong)
+    #     padded_nodes_edge_ids = np.zeros((len(node_ids), max_input_sequence_length)).astype(np.longlong)
+    #     padded_nodes_neighbor_times = np.zeros((len(node_ids), max_input_sequence_length)).astype(np.float32)
 
-        for idx in range(len(node_ids)):
-            padded_nodes_neighbor_ids[idx, 0] = node_ids[idx]
-            padded_nodes_edge_ids[idx, 0] = 0
-            padded_nodes_neighbor_times[idx, 0] = node_interact_times[idx]
+    #     for idx in range(len(node_ids)):
+    #         padded_nodes_neighbor_ids[idx, 0] = node_ids[idx]
+    #         padded_nodes_edge_ids[idx, 0] = 0
+    #         padded_nodes_neighbor_times[idx, 0] = node_interact_times[idx]
 
-            if len(nodes_neighbor_ids_list[idx]) > 0:
-                node_len = min(len(nodes_neighbor_ids_list[idx])-1, max_input_sequence_length-1)
-                padded_nodes_neighbor_ids[idx, 1: node_len + 1] = nodes_neighbor_ids_list[idx][-node_len:]
-                padded_nodes_edge_ids[idx, 1: node_len + 1] = nodes_edge_ids_list[idx][-node_len:]
-                padded_nodes_neighbor_times[idx, 1: node_len + 1] = nodes_neighbor_times_list[idx][-node_len:]
+    #         if len(nodes_neighbor_ids_list[idx]) > 0:
+    #             node_len = min(len(nodes_neighbor_ids_list[idx])-1, max_input_sequence_length-1)
+    #             padded_nodes_neighbor_ids[idx, 1: node_len + 1] = nodes_neighbor_ids_list[idx][-node_len:]
+    #             padded_nodes_edge_ids[idx, 1: node_len + 1] = nodes_edge_ids_list[idx][-node_len:]
+    #             padded_nodes_neighbor_times[idx, 1: node_len + 1] = nodes_neighbor_times_list[idx][-node_len:]
 
-        # three ndarrays with shape (batch_size, max_seq_length)
-        return padded_nodes_neighbor_ids, padded_nodes_edge_ids, padded_nodes_neighbor_times
+    #     # three ndarrays with shape (batch_size, max_seq_length)
+    #     return padded_nodes_neighbor_ids, padded_nodes_edge_ids, padded_nodes_neighbor_times
 
-    def get_features(self, node_interact_times: np.ndarray, padded_nodes_neighbor_ids: np.ndarray, padded_nodes_edge_ids: np.ndarray,
-                     padded_nodes_neighbor_times: np.ndarray, time_encoder: TimeEncoder):
+    def get_features(self, node_interact_times: np.ndarray, padded_nodes_neighbor_ids: torch.Tensor, padded_nodes_edge_ids: torch.Tensor,
+                     padded_nodes_neighbor_times: torch.Tensor, time_encoder: TimeEncoder):
         """
         get node, edge and time features
         :param node_interact_times: ndarray, shape (batch_size, )
@@ -347,15 +350,18 @@ class QSFormer(nn.Module):
         :param time_encoder: TimeEncoder, time encoder
         :return:
         """
+        node_interact_times_tensor = torch.from_numpy(node_interact_times[:, np.newaxis]).float().to(self.device)
+        time_differences = node_interact_times_tensor - padded_nodes_neighbor_times
+        
         # Tensor, shape (batch_size, max_seq_length, node_feat_dim)
-        padded_nodes_neighbor_node_raw_features = self.node_raw_features[torch.from_numpy(padded_nodes_neighbor_ids)]
+        padded_nodes_neighbor_node_raw_features = self.node_raw_features[padded_nodes_neighbor_ids]
         # Tensor, shape (batch_size, max_seq_length, edge_feat_dim)
-        padded_nodes_edge_raw_features = self.edge_raw_features[torch.from_numpy(padded_nodes_edge_ids)]
+        padded_nodes_edge_raw_features = self.edge_raw_features[padded_nodes_edge_ids]
         # Tensor, shape (batch_size, max_seq_length, time_feat_dim)
-        padded_nodes_neighbor_time_features = time_encoder(timestamps=torch.from_numpy(node_interact_times[:, np.newaxis] - padded_nodes_neighbor_times).float().to(self.device))
+        padded_nodes_neighbor_time_features = time_encoder(timestamps=time_differences)
 
         # ndarray, set the time features to all zeros for the padded timestamp
-        padded_nodes_neighbor_time_features[torch.from_numpy(padded_nodes_neighbor_ids == 0)] = 0.0
+        padded_nodes_neighbor_time_features.masked_fill_(padded_nodes_neighbor_ids == 0, 0.0)
 
         return padded_nodes_neighbor_node_raw_features, padded_nodes_edge_raw_features, padded_nodes_neighbor_time_features
 
@@ -395,8 +401,7 @@ class QSFormer(nn.Module):
         patches_nodes_neighbor_time_features = torch.stack(patches_nodes_neighbor_time_features, dim=1).reshape(batch_size, num_patches, patch_size * self.time_feat_dim)
         if padded_nodes_neighbor_co_occurrence_features is not None:
             patches_nodes_neighbor_co_occurrence_features = torch.stack(patches_nodes_neighbor_co_occurrence_features, dim=1).reshape(batch_size, num_patches, patch_size * self.cross_edge_neighbor_feat_dim if self.no_id_encode else patch_size * (self.cross_edge_neighbor_feat_dim+self.max_input_sequence_length))
-        else:
-            patches_nodes_neighbor_co_occurrence_features = None
+
         return patches_nodes_neighbor_node_raw_features, patches_nodes_edge_raw_features, patches_nodes_neighbor_time_features, patches_nodes_neighbor_co_occurrence_features
 
     def set_neighbor_sampler(self, neighbor_sampler: NeighborSampler):
