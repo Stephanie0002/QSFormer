@@ -287,23 +287,27 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.num_layers = 2
             args.order = 'gradient-0.08-3'
             args.num_hops = 2
-            args.num_high_order_neighbors = 3
         
-        if args.dataset_name in ['wikipedia', 'uci', 'SocialEvo']:
+        args.num_high_order_neighbors = 3
+                
+        if args.dataset_name in ['wikipedia', 'SocialEvo']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
-        elif args.dataset_name in ['reddit', 'myket']:
+        elif args.dataset_name in ['reddit', 'myket', 'enron']:
             args.max_input_sequence_length = 256
             args.patch_size = 8
+        elif args.dataset_name in ['myket', 'UNvote']:
+            args.max_input_sequence_length = 512
+            args.patch_size = 16
+            args.dim_expansion_factor = 6        
+        elif args.dataset_name in ['uci']:
+            args.max_input_sequence_length = 576
+            args.patch_size = 18
+            args.dim_expansion_factor = 8
+            args.num_high_order_neighbors = 1
         elif args.dataset_name in ['mooc', 'Flights', 'USLegis', 'UNtrade','Flights', 'lastfm', 'CanParl']:
             args.max_input_sequence_length = 1024
             args.patch_size = 32
-        elif args.dataset_name in ['enron']:
-            args.max_input_sequence_length = 256
-            args.patch_size = 8
-        elif args.dataset_name in ['UNvote']:
-            args.max_input_sequence_length = 512
-            args.patch_size = 16
         else:
             args.max_input_sequence_length = 128
             args.patch_size = 4
