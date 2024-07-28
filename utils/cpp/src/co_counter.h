@@ -41,13 +41,14 @@ py::tuple countNodesCooccurence(py::array_t<int64_t>& batch_src_nodes, py::array
 #pragma omp parallel for num_threads(threads) default(shared)
     for (ssize_t i = 0; i < batch_size; ++i) {
         // batch_src_nodes[i], batch_dst_nodes[i]
-        int64_t *src_nodes_ptr = batch_src_nodes_ptr + i * src_seq_len;
-        int64_t *dst_nodes_ptr = batch_dst_nodes_ptr + i * dst_seq_len;
+        // +1 to ignore itself
+        int64_t *src_nodes_ptr = batch_src_nodes_ptr + i * src_seq_len + 1;
+        int64_t *dst_nodes_ptr = batch_dst_nodes_ptr + i * dst_seq_len + 1;
 
         // Count node frequencies
         phmap::parallel_flat_hash_map<int64_t, int64_t> src_map(src_seq_len>>4), dst_map(dst_seq_len>>4);
-        countFrequencies(src_map, src_nodes_ptr, src_seq_len);
-        countFrequencies(dst_map, dst_nodes_ptr, dst_seq_len);
+        countFrequencies(src_map, src_nodes_ptr, src_seq_len-1);
+        countFrequencies(dst_map, dst_nodes_ptr, dst_seq_len-1);
 
         ssize_t src_batch_offset = i * src_seq_len * 2;
         for (ssize_t node = 0; node < src_seq_len; ++node) {
