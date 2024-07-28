@@ -292,9 +292,10 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         args.num_hops = 2        
         args.num_high_order_neighbors = 3
                 
-        if args.dataset_name in ['SocialEvo']:
+        if args.dataset_name in ['SocialEvo', 'wikipedia']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
+            args.dim_expansion_factor = 4
         elif args.dataset_name in ['reddit']:
             args.max_input_sequence_length = 256
             args.patch_size = 8
@@ -304,7 +305,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.patch_size = 8
             args.num_high_order_neighbors = 1
             args.dim_expansion_factor = 6
-        elif args.dataset_name in ['myket', 'wikipedia']:
+        elif args.dataset_name in ['myket']:
             args.max_input_sequence_length = 384
             args.patch_size = 12
             args.dim_expansion_factor = 6
