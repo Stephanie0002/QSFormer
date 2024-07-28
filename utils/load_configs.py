@@ -61,6 +61,8 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--negative_sample_strategy', type=str, default='random', choices=['random', 'historical', 'inductive'],
                         help='strategy for the negative edge sampling')
     parser.add_argument('--no_id_encode', action='store_true', default=False, help='whether to encode identification')
+    parser.add_argument('--no_high_order', action='store_true', default=False, help='whether to use high order neighbors')
+    parser.add_argument('--no_long_sequence', action='store_true', default=False, help='whether to use long sequence')
     parser.add_argument('--train_neg_size', type=int, default=1, help='the number of negative samples for each positive sample in training')
     parser.add_argument('--val_neg_size', type=int, default=9, help='the number of negative samples for each positive sample in validation')
     parser.add_argument('--test_neg_size', type=int, default=49, help='the number of negative samples for each positive sample in testing')
@@ -290,40 +292,53 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         
         args.num_high_order_neighbors = 3
                 
-        if args.dataset_name in ['wikipedia', 'SocialEvo']:
+        if args.dataset_name in ['SocialEvo']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
-        elif args.dataset_name in ['reddit', 'myket', 'enron']:
+        elif args.dataset_name in ['reddit']:
             args.max_input_sequence_length = 256
             args.patch_size = 8
-        elif args.dataset_name in ['myket', 'UNvote']:
-            args.max_input_sequence_length = 512
-            args.patch_size = 16
-            args.dim_expansion_factor = 6        
+            args.dim_expansion_factor = 6
+        elif args.dataset_name in ['enron']:
+            args.max_input_sequence_length = 256
+            args.patch_size = 8
+            args.num_high_order_neighbors = 1
+            args.dim_expansion_factor = 6
+        elif args.dataset_name in ['myket', 'wikipedia']:
+            args.max_input_sequence_length = 384
+            args.patch_size = 12
+            args.dim_expansion_factor = 6
         elif args.dataset_name in ['uci']:
             args.max_input_sequence_length = 576
             args.patch_size = 18
             args.dim_expansion_factor = 8
             args.num_high_order_neighbors = 1
-        elif args.dataset_name in ['mooc', 'Flights', 'USLegis', 'UNtrade','Flights', 'lastfm', 'CanParl']:
+        elif args.dataset_name in ['mooc', 'Flights', 'lastfm']:
             args.max_input_sequence_length = 1024
             args.patch_size = 32
+            args.dim_expansion_factor = 4
         else:
             args.max_input_sequence_length = 128
             args.patch_size = 4
+            args.dim_expansion_factor = 4
         assert args.max_input_sequence_length % args.patch_size == 0
-        if args.dataset_name in ['reddit', 'myket','UNvote']:
+        if args.dataset_name in ['reddit', 'myket']:
             args.dropout = 0.25
-        elif args.dataset_name in ['enron', 'USLegis', 'UNtrade', 'Contacts']:
+        elif args.dataset_name in ['enron', 'Contacts']:
             args.dropout = 0.1
         else:
             args.dropout = 0.15
     else:
         raise ValueError(f"Wrong value for model_name {args.model_name}!")
     
-    if args.num_hops==1 and args.ablation:
-        args.max_input_sequence_length //= 4
-        args.patch_size //= 4
+    if args.no_high_order and args.ablation:
+        args.num_hops==1
+        args.max_input_sequence_length //= 1 + args.num_high_order_neighbors
+        args.patch_size //= 1 + args.num_high_order_neighbors
+        
+    if args.no_loong_sequence and args.ablation:
+        args.max_input_sequence_length = 32
+        args.patch_size = 1
 
 
 def get_node_classification_args():

@@ -20,8 +20,17 @@ for method in "${methods_list[@]}"; do
     eval "$cmd2"
 
     # 去除二跳邻居
-    cmd="python train_link_prediction.py --dataset_name $data --gpu $gpu --order gradient-0.08-3 --model_name $method --num_runs 1 --num_hops 1 --num_layers 2 --load_best_configs --ablation --test_interval_epochs 120"
+    cmd="python train_link_prediction.py --dataset_name $data --gpu $gpu --order gradient-0.08-3 --model_name $method --num_runs 1 --num_layers 2 --load_best_configs --ablation --no_high_order--test_interval_epochs 120"
     echo "去除二跳邻居"
+    echo "$cmd"
+    eval "$cmd"
+    cmd2="find logs/$method/$data/${method}_seed0 -type f -regex '.*/[0-9]+\.[0-9]+\.log' -exec bash -c 'mv {} {}.onehop' \;"
+    echo "$cmd2"
+    eval "$cmd2"
+
+    # 去除长序列
+    cmd="python train_link_prediction.py --dataset_name $data --gpu $gpu --order gradient-0.08-3 --model_name $method --num_runs 1 --num_layers 2 --load_best_configs --ablation --no_long_sequence --test_interval_epochs 120"
+    echo "去除长序列"
     echo "$cmd"
     eval "$cmd"
     cmd2="find logs/$method/$data/${method}_seed0 -type f -regex '.*/[0-9]+\.[0-9]+\.log' -exec bash -c 'mv {} {}.onehop' \;"
