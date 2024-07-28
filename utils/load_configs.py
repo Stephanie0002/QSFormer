@@ -286,10 +286,10 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.dropout = 0.1
     elif args.model_name in ['QSFormer', 'FFNFormer']:
         if not args.ablation:
-            args.num_layers = 2
             args.order = 'gradient-0.08-3'
-            args.num_hops = 2
         
+        args.num_layers = 2
+        args.num_hops = 2        
         args.num_high_order_neighbors = 3
                 
         if args.dataset_name in ['SocialEvo']:
@@ -336,7 +336,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         args.max_input_sequence_length //= 1 + args.num_high_order_neighbors
         args.patch_size //= 1 + args.num_high_order_neighbors
         
-    if args.no_loong_sequence and args.ablation:
+    if args.no_long_sequence and args.ablation:
         args.max_input_sequence_length = 32
         args.patch_size = 1
 
