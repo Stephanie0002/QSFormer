@@ -292,7 +292,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         args.num_hops = 2        
         args.num_high_order_neighbors = 3
                 
-        if args.dataset_name in ['SocialEvo', 'wikipedia']:
+        if args.dataset_name in ['SocialEvo', 'wikipedia', 'Contacts']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
             args.dim_expansion_factor = 4
@@ -333,7 +333,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         raise ValueError(f"Wrong value for model_name {args.model_name}!")
     
     if args.no_high_order and args.ablation:
-        args.num_hops==1
+        args.num_hops=1
         args.max_input_sequence_length //= 1 + args.num_high_order_neighbors
         args.patch_size //= 1 + args.num_high_order_neighbors
         
