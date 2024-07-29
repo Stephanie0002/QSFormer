@@ -112,30 +112,32 @@ class QSFormer(nn.Module):
         self.neighbor_sampler.neighbor_sample_from_nodes(dst_node_ids_th, node_interact_times_th)
         dst_padded_nodes_neighbor_ids, dst_padded_nodes_edge_ids, dst_padded_nodes_neighbor_times, dst_srcindex_list = \
             self.neighbor_sampler.get_ret()
-        
+
         # self.src_neighbor_padding_size, self.dst_neighbor_padding_size = torch.sum(src_nodes_neighbor_ids_list==0, axis=1), torch.sum(dst_nodes_neighbor_ids_list==0, axis=1)
         # print("src_neighbor_padding_size", self.src_neighbor_padding_size)
         # print("dst_neighbor_padding_size", self.dst_neighbor_padding_size)
         
-        # src_padded_nodes_neighbor_ids, src_padded_nodes_edge_ids, src_padded_nodes_neighbor_times = src_nodes_neighbor_ids_list.numpy(), src_nodes_edge_ids_list.numpy(), src_nodes_neighbor_times_list.numpy()
-        # dst_padded_nodes_neighbor_ids, dst_padded_nodes_edge_ids, dst_padded_nodes_neighbor_times = dst_nodes_neighbor_ids_list.numpy(), dst_nodes_edge_ids_list.numpy(), dst_nodes_neighbor_times_list.numpy()
+        # src_padded_nodes_neighbor_ids, src_padded_nodes_edge_ids, src_padded_nodes_neighbor_times = src_padded_nodes_neighbor_ids.numpy(), src_padded_nodes_edge_ids.numpy(), src_padded_nodes_neighbor_times.numpy()
+        # dst_padded_nodes_neighbor_ids, dst_padded_nodes_edge_ids, dst_padded_nodes_neighbor_times = dst_padded_nodes_neighbor_ids.numpy(), dst_padded_nodes_edge_ids.numpy(), dst_padded_nodes_neighbor_times.numpy()
 
         # # pad the sequences of n-hop neighbors for source and destination nodes
         # # src_padded_nodes_neighbor_ids, ndarray, shape (batch_size, src_max_seq_length)
         # # src_padded_nodes_edge_ids, ndarray, shape (batch_size, src_max_seq_length)
         # # src_padded_nodes_neighbor_times, ndarray, shape (batch_size, src_max_seq_length)
         # src_padded_nodes_neighbor_ids, src_padded_nodes_edge_ids, src_padded_nodes_neighbor_times = \
-        #     self.pad_sequences(node_ids=src_node_ids, node_interact_times=node_interact_times, nodes_neighbor_ids_list=src_nodes_neighbor_ids_list,
-        #                        nodes_edge_ids_list=src_nodes_edge_ids_list, nodes_neighbor_times_list=src_nodes_neighbor_times_list,
+        #     self.pad_sequences(node_ids=src_node_ids, node_interact_times=node_interact_times, nodes_neighbor_ids_list=src_padded_nodes_neighbor_ids,
+        #                        nodes_edge_ids_list=src_padded_nodes_edge_ids, nodes_neighbor_times_list=src_padded_nodes_neighbor_times,
         #                        patch_size=self.patch_size, max_input_sequence_length=self.max_input_sequence_length)
 
         # # dst_padded_nodes_neighbor_ids, ndarray, shape (batch_size, dst_max_seq_length)
         # # dst_padded_nodes_edge_ids, ndarray, shape (batch_size, dst_max_seq_length)
         # # dst_padded_nodes_neighbor_times, ndarray, shape (batch_size, dst_max_seq_length)
         # dst_padded_nodes_neighbor_ids, dst_padded_nodes_edge_ids, dst_padded_nodes_neighbor_times = \
-        #     self.pad_sequences(node_ids=dst_node_ids, node_interact_times=node_interact_times, nodes_neighbor_ids_list=dst_nodes_neighbor_ids_list,
-        #                        nodes_edge_ids_list=dst_nodes_edge_ids_list, nodes_neighbor_times_list=dst_nodes_neighbor_times_list,
+        #     self.pad_sequences(node_ids=dst_node_ids, node_interact_times=node_interact_times, nodes_neighbor_ids_list=dst_padded_nodes_neighbor_ids,
+        #                        nodes_edge_ids_list=dst_padded_nodes_edge_ids, nodes_neighbor_times_list=dst_padded_nodes_neighbor_times,
         #                        patch_size=self.patch_size, max_input_sequence_length=self.max_input_sequence_length)
+        
+            
         if not no_time:
             globals.timer.end_neighbor_sample()
 
@@ -382,7 +384,7 @@ class QSFormer(nn.Module):
         
         # Use the unfold method to perform sliding window operations directly on tensors
         def unfold_tensor(tensor, feat_dim):
-            return tensor.unfold(1, patch_size, patch_size).contiguous().view(batch_size, num_patches, patch_size * feat_dim)
+            return tensor.unfold(1, patch_size, patch_size).permute(0, 1, 3, 2).contiguous().view(batch_size, num_patches, patch_size * feat_dim)
 
         # Tensor, shape (batch_size, num_patches, patch_size * node_feat_dim)
         patches_nodes_neighbor_node_raw_features = unfold_tensor(padded_nodes_neighbor_node_raw_features, self.node_feat_dim)
