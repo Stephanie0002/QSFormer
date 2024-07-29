@@ -287,12 +287,19 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
     elif args.model_name in ['QSFormer', 'FFNFormer']:
         if not args.ablation:
             args.order = 'gradient-0.08-3'
+            if args.dataset_name in ['mooc', 'uci', 'myket']:
+                args.order = 'gradient-0.1'
         
         args.num_layers = 2
         args.num_hops = 2        
         args.num_high_order_neighbors = 3
+        
                 
-        if args.dataset_name in ['SocialEvo', 'wikipedia', 'Contacts']:
+        if args.dataset_name in ['SocialEvo', 'Contacts']:
+            args.max_input_sequence_length = 128
+            args.patch_size = 4
+            args.dim_expansion_factor = 4
+        elif args.dataset_name in ['wikipedia']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
             args.dim_expansion_factor = 4

@@ -19,10 +19,10 @@ data=$3
 # Iterate over the data list
 # for data in "${data_list[@]}"; do
 dir_to_check="logs/$method/$data/${method}_seed0"
-if [ ! -d "$dir_to_check" ]; then
+# if [ ! -d "$dir_to_check" ]; then
     # Run the command with the provided gpu, method, and current data
-    cmd="python train_link_prediction.py --gpu $gpu --num_runs 1 --dataset_name $data --model_name $method --load_best_configs --test_interval_epochs 120"
-    echo "$cmd"
-    eval "$cmd"
-fi
+cmd="python train_link_prediction.py --gpu $gpu --num_runs 1 --dataset_name $data --model_name $method --load_best_configs --test_interval_epochs 120"
+echo "$cmd"
+eval "$cmd"
+# fi
 # done
