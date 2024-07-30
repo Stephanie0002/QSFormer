@@ -19,14 +19,17 @@ processed_data/
 DG_data
 processed_data
 
-# 忽略 机器相关 文件
-*efficiency*
-*efficency*
-train_link_5_epoch_same.sh
-train_link_10_epoch.sh
+# # 忽略 机器相关 文件
+# *efficiency*
+# *efficency*
+# train_link_5_epoch_same.sh
+# train_link_10_epoch.sh
 
 # 忽略 日志 文件
 *-log.txt
 log.*
 *.xlsx
 *.tex
+
+# 忽略备份文件
+*.bak

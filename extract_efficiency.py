@@ -62,26 +62,26 @@ for root, dirs, files in os.walk(folder_path):
         file_path = os.path.join(root, file_name)
         
         # 读取文件内容
-        if(file_path.find('.efficency')!=-1):
+        if(file_path.find('.efficency')!=-1 or file_path.find('.efficiency')!=-1):
             with open(file_path, 'r') as file:
                 num_epochs = 10
                 content = file.read()
                 
                 # 只取 Epoch 10 的文本
-                # 使用正则表达式查找Epoch 10的数据
-                epoch_10_pattern = r'Epoch: 10,.*?(?=Epoch: 11|$)'  # 非贪婪匹配直到下一个Epoch或文件结束
-                epoch_10_match = re.search(epoch_10_pattern, content, re.DOTALL)
-                if epoch_10_match:
-                    epoch_10_content = epoch_10_match.group(0)
+                # 使用正则表达式查找Epoch 5的数据
+                epoch_5_pattern = r'Epoch: 5,.*?(?=Epoch: 6|$)'  # 非贪婪匹配直到下一个Epoch或文件结束
+                epoch_5_match = re.search(epoch_5_pattern, content, re.DOTALL)
+                if epoch_5_match:
+                    epoch_5_content = epoch_5_match.group(0)
                 else:
-                    epoch_10_content = ''
+                    epoch_5_content = ''
                 
-                print(epoch_10_content)
+                # print(epoch_5_content)
                             
                 # 提取匹配的值            
                 values = {}
                 for key, pattern in patterns.items():
-                    match = re.search(pattern, epoch_10_content)
+                    match = re.search(pattern, epoch_5_content)
                     if match:
                         values[key] = float(match.group(1))
                         if key == 'Run cost(/epoch)' and  num_epochs!=None:
@@ -105,7 +105,7 @@ for root, dirs, files in os.walk(folder_path):
                 }
 
                 # 使用正则表达式提取时间值
-                matches = re.finditer(r"(train time|val time|load feature time|encodeCo time|construct patchs time|transform time|neighbor sample time|try time):(\d+.\d+)", epoch_10_content)
+                matches = re.finditer(r"(train time|val time|load feature time|encodeCo time|construct patchs time|transform time|neighbor sample time|try time):(\d+.\d+)", epoch_5_content)
                 for match in matches:
                     if match:
                         time_type = match.group(1)
@@ -115,11 +115,14 @@ for root, dirs, files in os.walk(folder_path):
                 # 将这些值添加到DataFrame中
                 dict['epoch'] = num_epochs
                 df = df._append(dict, ignore_index=True)
-                df = df[~df['file_path'].str.contains('old')]
-                df = df[~df['file_path'].str.contains('bak')]
-                # df = df[df['file_path'].str.contains('DyGFormer|FFNFormer|QSFormer', na=False)]
-                df = df[df['file_path'].str.contains('efficiency', na=False)]
-                # df = df.sort_values(by='filepath')
+                
+                
+df = df[~df['file_path'].str.contains('old')]
+df = df[~df['file_path'].str.contains('bak')]
+df = df[df['file_path'].str.contains('DyGFormer|QSFormer', na=False)]
+# df = df[df['file_path'].str.contains('efficency', na=False)]
+# df = df.sort_values(by='filepath')
+df = df.drop(['file_name', 'model_seed', 'validate average_precision', 'validate roc_auc', 'validate mrr', 'new node validate average_precision', 'new node validate roc_auc', 'new node validate mrr', 'test average_precision', 'test roc_auc', 'test mrr', 'new node test average_precision', 'new node test roc_auc', 'new node test mrr'], axis=1)
 
 # 将数据帧保存到 Excel 表格
 df.to_excel('results_e.xlsx', index=False)
