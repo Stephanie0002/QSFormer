@@ -61,6 +61,7 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--negative_sample_strategy', type=str, default='random', choices=['random', 'historical', 'inductive'],
                         help='strategy for the negative edge sampling')
     parser.add_argument('--no_id_encode', action='store_true', default=False, help='whether to encode identification')
+    parser.add_argument('--no_adapt', action='store_true', default=False, help='whether to adapt mini batch generation')
     parser.add_argument('--no_high_order', action='store_true', default=False, help='whether to use high order neighbors')
     parser.add_argument('--no_long_sequence', action='store_true', default=False, help='whether to use long sequence')
     parser.add_argument('--train_neg_size', type=int, default=1, help='the number of negative samples for each positive sample in training')
@@ -69,8 +70,6 @@ def get_link_prediction_args(is_evaluation: bool = False):
 
     parser.add_argument('--load_model_filename', type=str, help='model param file to be load', default='None')
     
-    
-    parser.add_argument('--ablation', action='store_true', default=False, help='whether to set ablation mode')
     parser.add_argument('--load_best_configs', action='store_true', default=False, help='whether to load the best configurations')
     
     try:
@@ -285,21 +284,15 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         else:
             args.dropout = 0.1
     elif args.model_name in ['QSFormer', 'FFNFormer']:
-        if not args.ablation:
-            args.order = 'gradient-0.08-3'
-            if args.dataset_name in ['mooc', 'uci', 'myket']:
-                args.order = 'gradient-0.1'
-        
+        args.order = 'gradient-0.08-3'
         args.num_layers = 2
         args.num_hops = 2        
         args.num_high_order_neighbors = 3
-        
+
+        if args.dataset_name in ['mooc', 'myket']:
+            args.order = 'gradient-0.1'
                 
         if args.dataset_name in ['SocialEvo', 'Contacts']:
-            args.max_input_sequence_length = 128
-            args.patch_size = 4
-            args.dim_expansion_factor = 4
-        elif args.dataset_name in ['wikipedia']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
             args.dim_expansion_factor = 4
@@ -315,6 +308,10 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         elif args.dataset_name in ['myket']:
             args.max_input_sequence_length = 384
             args.patch_size = 12
+            args.dim_expansion_factor = 6
+        elif args.dataset_name in ['wikipedia']:
+            args.max_input_sequence_length = 512
+            args.patch_size = 16
             args.dim_expansion_factor = 6
         elif args.dataset_name in ['uci']:
             args.max_input_sequence_length = 576
@@ -339,14 +336,17 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
     else:
         raise ValueError(f"Wrong value for model_name {args.model_name}!")
     
-    if args.no_high_order and args.ablation:
+    if args.no_high_order:
         args.num_hops=1
         args.max_input_sequence_length //= 1 + args.num_high_order_neighbors
         args.patch_size //= 1 + args.num_high_order_neighbors
         
-    if args.no_long_sequence and args.ablation:
+    if args.no_long_sequence:
         args.max_input_sequence_length = 32
         args.patch_size = 1
+        
+    if args.no_adapt:
+        args.order = 'chorno'
 
 
 def get_node_classification_args():
