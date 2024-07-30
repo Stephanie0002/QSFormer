@@ -53,6 +53,8 @@ def decimal_format(x):
         return '{:.2f}'.format(x)
     else:
         return x
+    
+bad_df=out_df.copy()
 
 # 使用 apply 函数应用这个函数
 out_df.loc[out_df['DataSets'] != 'Avg.Rank'] = out_df.loc[out_df['DataSets'] != 'Avg.Rank'].applymap(percentage_format)
@@ -64,3 +66,24 @@ print(out_df)
 out_df.to_excel('AP_table.xlsx', index=False)
 out_df.to_latex('AP_table.tex', index=False)
 print('Done')
+
+
+for col in bad_df.columns:
+    bad_df[col] = pd.to_numeric(bad_df[col], errors='coerce')
+    
+# # 使用 lambda 函数和 nlargest 来找到每行的最大值和次大值
+# result = bad_df.apply(lambda row: row.nlargest(2).values, axis=1)
+# result = result.apply(pd.Series)
+# result.columns = ['max', 'second_max']
+# print(result)
+
+
+# 定义一个函数，返回每行最大和次大值的列名
+def get_top_two_column_names(row):
+    return row.nlargest(2).index.tolist()
+
+# 应用函数到每一行
+top_two_columns = bad_df.apply(get_top_two_column_names, axis=1)
+
+# 查看结果
+print(top_two_columns)
