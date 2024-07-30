@@ -60,15 +60,18 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--test_interval_epochs', type=int, default=10, help='how many epochs to perform testing once')
     parser.add_argument('--negative_sample_strategy', type=str, default='random', choices=['random', 'historical', 'inductive'],
                         help='strategy for the negative edge sampling')
+    
     parser.add_argument('--no_id_encode', action='store_true', default=False, help='whether to encode identification')
+    parser.add_argument('--no_adapt', action='store_true', default=False, help='whether to adapt mini batch generation')
+    parser.add_argument('--no_high_order', action='store_true', default=False, help='whether to use high order neighbors')
+    parser.add_argument('--no_long_sequence', action='store_true', default=False, help='whether to use long sequence')
+    
     parser.add_argument('--train_neg_size', type=int, default=1, help='the number of negative samples for each positive sample in training')
     parser.add_argument('--val_neg_size', type=int, default=9, help='the number of negative samples for each positive sample in validation')
     parser.add_argument('--test_neg_size', type=int, default=49, help='the number of negative samples for each positive sample in testing')
 
     parser.add_argument('--load_model_filename', type=str, help='model param file to be load', default='None')
     
-    
-    parser.add_argument('--ablation', action='store_true', default=False, help='whether to set ablation mode')
     parser.add_argument('--load_best_configs', action='store_true', default=False, help='whether to load the best configurations')
     
     try:
@@ -283,11 +286,10 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         else:
             args.dropout = 0.1
     elif args.model_name in ['QSFormer', 'FFNFormer']:
-        if not args.ablation:
-            args.num_layers = 2
-            args.order = 'gradient-0.08-3'
-            args.num_hops = 2
-            args.num_high_order_neighbors = 3
+        args.num_layers = 2
+        args.order = 'gradient-0.08-3'
+        args.num_hops = 2
+        args.num_high_order_neighbors = 3
         
         if args.dataset_name in ['wikipedia', 'uci', 'Contacts']:
             args.max_input_sequence_length = 128
@@ -295,31 +297,36 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         elif args.dataset_name in ['reddit', 'myket', 'SocialEvo']:
             args.max_input_sequence_length = 256
             args.patch_size = 8
-        elif args.dataset_name in ['mooc', 'Flights', 'USLegis', 'UNtrade','Flights', 'lastfm', 'CanParl']:
+        elif args.dataset_name in ['mooc', 'Flights','Flights', 'lastfm']:
             args.max_input_sequence_length = 1024
             args.patch_size = 32
         elif args.dataset_name in ['enron']:
             args.max_input_sequence_length = 256
             args.patch_size = 8
-        elif args.dataset_name in ['UNvote']:
-            args.max_input_sequence_length = 512
-            args.patch_size = 16
         else:
             args.max_input_sequence_length = 128
             args.patch_size = 4
         assert args.max_input_sequence_length % args.patch_size == 0
-        if args.dataset_name in ['reddit', 'myket','UNvote']:
+        if args.dataset_name in ['reddit', 'myket']:
             args.dropout = 0.25
-        elif args.dataset_name in ['enron', 'USLegis', 'UNtrade', 'Contacts']:
+        elif args.dataset_name in ['enron', 'Contacts']:
             args.dropout = 0.1
         else:
             args.dropout = 0.15
     else:
         raise ValueError(f"Wrong value for model_name {args.model_name}!")
     
-    if args.num_hops==1 and args.ablation:
-        args.max_input_sequence_length //= 4
-        args.patch_size //= 4
+    if args.no_high_order:
+        args.num_hops=1
+        args.max_input_sequence_length //= 1 + args.num_high_order_neighbors
+        args.patch_size //= 1 + args.num_high_order_neighbors
+        
+    if args.no_long_sequence:
+        args.max_input_sequence_length = 32
+        args.patch_size = 1
+        
+    if args.no_adapt:
+        args.order = 'chorno'
 
 
 def get_node_classification_args():
