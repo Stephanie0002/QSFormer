@@ -289,7 +289,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         args.num_hops = 2        
         args.num_high_order_neighbors = 3
 
-        if args.dataset_name in ['mooc', 'myket']:
+        if args.dataset_name in ['mooc']:
             args.order = 'gradient-0.1'
                 
         if args.dataset_name in ['SocialEvo', 'Contacts']:
