@@ -106,11 +106,11 @@ class QSFormer(nn.Module):
         # three lists to store source nodes' n-hop neighbor ids, edge ids and interaction timestamp information, with batch_size as the list length
         self.neighbor_sampler.neighbor_sample_from_nodes(src_node_ids_th, node_interact_times_th)
         # Shape: (batch_size, max_input_sequence_length)
-        src_padded_nodes_neighbor_ids, src_padded_nodes_edge_ids, src_padded_nodes_neighbor_times =  \
+        src_padded_nodes_neighbor_ids, src_padded_nodes_edge_ids, src_padded_nodes_neighbor_times, src_srcindex_list =  \
             self.neighbor_sampler.get_ret()
         # three lists to store destination nodes' n-hop neighbor ids, edge ids and interaction timestamp information, with batch_size as the list length
         self.neighbor_sampler.neighbor_sample_from_nodes(dst_node_ids_th, node_interact_times_th)
-        dst_padded_nodes_neighbor_ids, dst_padded_nodes_edge_ids, dst_padded_nodes_neighbor_times = \
+        dst_padded_nodes_neighbor_ids, dst_padded_nodes_edge_ids, dst_padded_nodes_neighbor_times, dst_srcindex_list = \
             self.neighbor_sampler.get_ret()
         
         # self.src_neighbor_padding_size, self.dst_neighbor_padding_size = torch.sum(src_nodes_neighbor_ids_list==0, axis=1), torch.sum(dst_nodes_neighbor_ids_list==0, axis=1)
@@ -361,7 +361,7 @@ class QSFormer(nn.Module):
         padded_nodes_neighbor_time_features = time_encoder(timestamps=time_differences)
 
         # ndarray, set the time features to all zeros for the padded timestamp
-        padded_nodes_neighbor_time_features.masked_fill_(padded_nodes_neighbor_ids == 0, 0.0)
+        padded_nodes_neighbor_time_features.masked_fill_((padded_nodes_neighbor_ids == 0).unsqueeze(-1), 0.0)
 
         return padded_nodes_neighbor_node_raw_features, padded_nodes_edge_raw_features, padded_nodes_neighbor_time_features
 

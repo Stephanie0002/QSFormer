@@ -289,7 +289,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.num_hops = 2
             args.num_high_order_neighbors = 3
         
-        if args.dataset_name in ['wikipedia', 'uci']:
+        if args.dataset_name in ['wikipedia', 'uci', 'Contacts']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
         elif args.dataset_name in ['reddit', 'myket', 'SocialEvo']:
