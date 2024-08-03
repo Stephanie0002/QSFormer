@@ -95,7 +95,7 @@ if __name__ == "__main__":
         logger.setLevel(logging.DEBUG)
         os.makedirs(f"./logs/{args.model_name}/{args.dataset_name}/{args.save_model_name}/", exist_ok=True)
         # create file handler that logs debug and higher level messages
-        fh = logging.FileHandler(f"./logs/{args.model_name}/{args.dataset_name}/{args.save_model_name}/{str(time.time())}.log")
+        fh = logging.FileHandler(f"./logs/{args.model_name}/{args.dataset_name}/{args.save_model_name}/{args.save_model_name}.log")
         fh.setLevel(logging.DEBUG)
         # create console handler with a higher log level
         ch = logging.StreamHandler()
@@ -177,7 +177,7 @@ if __name__ == "__main__":
         model = convert_to_gpu(model, device=args.device)
 
         save_model_folder = f"./saved_models/{args.model_name}/{args.dataset_name}/{args.save_model_name}/"
-        args.save_model_name = [args.save_model_name, f"{str(time.time())}"]
+        args.save_model_name = [args.save_model_name, f"{args.save_model_name}"]
         # shutil.rmtree(save_model_folder, ignore_errors=True)
         os.makedirs(save_model_folder, exist_ok=True)
 
@@ -323,11 +323,11 @@ if __name__ == "__main__":
 
                 train_metrics.append(get_link_prediction_metrics(y_pred_pos=positive_probabilities, y_pred_neg=negative_probabilities, labels=labels))
 
-                globals.timer.start_try()
+                globals.timer.start_backward()
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-                globals.timer.end_try()
+                globals.timer.end_backward()
                                 
                 with torch.no_grad():
                     if args.order.startswith('gradient'):

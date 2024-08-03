@@ -22,9 +22,9 @@ class Timer:
         self.encodeCo_time = None
         self.construct_patchs_i = None
         self.construct_patchs_time = None
-        self.transform_i = None
-        self.transform_time = None
-        self.try_time = None
+        self.forward_i = None
+        self.forward_time = None
+        self.backward_time = None
         
         self.enable = enable
         self.len_cache = len_cache
@@ -57,8 +57,8 @@ class Timer:
             self.construct_patchs_s = [torch.cuda.Event(enable_timing=True) for _ in range(len_cache)]
             self.construct_patchs_e = [torch.cuda.Event(enable_timing=True) for _ in range(len_cache)]
             
-            self.try_time_s = [torch.cuda.Event(enable_timing=True) for _ in range(len_cache)]
-            self.try_time_e = [torch.cuda.Event(enable_timing=True) for _ in range(len_cache)]
+            self.backward_time_s = [torch.cuda.Event(enable_timing=True) for _ in range(len_cache)]
+            self.backward_time_e = [torch.cuda.Event(enable_timing=True) for _ in range(len_cache)]
 
         self.reset()
 
@@ -90,11 +90,11 @@ class Timer:
         self.construct_patchs_i = 0
         self.construct_patchs_time = 0
         
-        self.transform_i = 0
-        self.transform_time = 0
+        self.forward_i = 0
+        self.forward_time = 0
         
-        self.try_i = 0
-        self.try_time = 0      
+        self.backward_i = 0
+        self.backward_time = 0      
 
     def compute_all(self):
         torch.cuda.synchronize()        
@@ -136,13 +136,13 @@ class Timer:
             self.construct_patchs_time += s.elapsed_time(e) / 1000
         self.construct_patchs_i = 0
         
-        for s, e in zip(self.transform_s[:self.transform_i], self.transform_e[:self.transform_i]):
-            self.transform_time += s.elapsed_time(e) / 1000
-        self.transform_i = 0
+        for s, e in zip(self.forward_s[:self.forward_i], self.forward_e[:self.forward_i]):
+            self.forward_time += s.elapsed_time(e) / 1000
+        self.forward_i = 0
         
-        for s, e in zip(self.try_time_s[:self.try_i], self.try_time_e[:self.try_i]):
-            self.try_time += s.elapsed_time(e) / 1000
-        self.try_i = 0
+        for s, e in zip(self.backward_time_s[:self.backward_i], self.backward_time_e[:self.backward_i]):
+            self.backward_time += s.elapsed_time(e) / 1000
+        self.backward_i = 0
         
 
     def print(self, prefix, epoch, logger):
@@ -150,11 +150,11 @@ class Timer:
         logger.info('{}train time:{:.4f}s  val time:{:.4f}s'.format(prefix,
                                                               self.train_time/epoch,
                                                               self.val_time/epoch))
-        ans = 'load feature time:{:.4f}s  encodeCo time:{:.4f}s  construct patchs time:{:.4f}s  transform time:{:.4f}s'\
-              .format(self.load_feature_time/epoch, self.encodeCo_time/epoch, self.construct_patchs_time/epoch, self.transform_time/epoch)
+        ans = 'load feature time:{:.4f}s  encodeCo time:{:.4f}s  construct patchs time:{:.4f}s  forward time:{:.4f}s'\
+              .format(self.load_feature_time/epoch, self.encodeCo_time/epoch, self.construct_patchs_time/epoch, self.forward_time/epoch)
         ans += '  neighbor sample time:{:.4f}s'.format(self.neighbor_sample_time/epoch)
-        ans += '  other time:{:.4f}s'.format((self.train_time-self.load_feature_time-self.encodeCo_time-self.construct_patchs_time-self.transform_time-self.neighbor_sample_time)/epoch)
-        ans += '  try time:{:.4f}s'.format(self.try_time/epoch)
+        ans += '  other time:{:.4f}s'.format((self.train_time-self.load_feature_time-self.encodeCo_time-self.construct_patchs_time-self.forward_time-self.neighbor_sample_time-self.backward_time)/epoch)
+        ans += '  backward time:{:.4f}s'.format(self.backward_time/epoch)
         logger.info('{}{}'.format(prefix, ans))
         
     def get_all(self, epoch):
@@ -165,9 +165,9 @@ class Timer:
                 "load feature time": self.load_feature_time/epoch,
                 "encodeCo time": self.encodeCo_time/epoch,
                 "construct patchs time": self.construct_patchs_time/epoch,
-                "transform time": self.transform_time/epoch,
+                "forward time": self.forward_time/epoch,
                 "neighbor sample time": self.neighbor_sample_time/epoch,
-                "other time": (self.train_time-self.load_feature_time-self.encodeCo_time-self.construct_patchs_time-self.transform_time-self.neighbor_sample_time)/epoch
+                "other time": (self.train_time-self.load_feature_time-self.encodeCo_time-self.construct_patchs_time-self.forward_time-self.neighbor_sample_time-self.backward_time)/epoch
                 }
 
     def set_enable(self):
@@ -199,11 +199,11 @@ class Timer:
             self.construct_patchs_s = [torch.cuda.Event(enable_timing=True) for _ in range(self.len_cache)]
             self.construct_patchs_e = [torch.cuda.Event(enable_timing=True) for _ in range(self.len_cache)]
             
-            self.transform_s = [torch.cuda.Event(enable_timing=True) for _ in range(self.len_cache)]
-            self.transform_e = [torch.cuda.Event(enable_timing=True) for _ in range(self.len_cache)]
+            self.forward_s = [torch.cuda.Event(enable_timing=True) for _ in range(self.len_cache)]
+            self.forward_e = [torch.cuda.Event(enable_timing=True) for _ in range(self.len_cache)]
             
-            self.try_time_s = [torch.cuda.Event(enable_timing=True) for _ in range(self.len_cache)]
-            self.try_time_e = [torch.cuda.Event(enable_timing=True) for _ in range(self.len_cache)]
+            self.backward_time_s = [torch.cuda.Event(enable_timing=True) for _ in range(self.len_cache)]
+            self.backward_time_e = [torch.cuda.Event(enable_timing=True) for _ in range(self.len_cache)]
 
             self.enable = True
 
@@ -335,33 +335,33 @@ class Timer:
                     self.construct_patchs_time += s.elapsed_time(e) / 1000
                 self.construct_patchs_i = 0
     
-    def start_transform(self):
+    def start_forward(self):
         if self.enable:
-            self.transform_s[self.transform_i].record()
+            self.forward_s[self.forward_i].record()
     
-    def end_transform(self):
+    def end_forward(self):
         if self.enable:
-            self.transform_e[self.transform_i].record()
-            self.transform_i += 1
-            if self.transform_i == self.len_cache:
+            self.forward_e[self.forward_i].record()
+            self.forward_i += 1
+            if self.forward_i == self.len_cache:
                 torch.cuda.synchronize()
-                for s, e in zip(self.transform_s[:self.transform_i], self.transform_e[:self.transform_i]):
-                    self.transform_time += s.elapsed_time(e) / 1000
-                self.transform_i = 0
+                for s, e in zip(self.forward_s[:self.forward_i], self.forward_e[:self.forward_i]):
+                    self.forward_time += s.elapsed_time(e) / 1000
+                self.forward_i = 0
                 
-    def start_try(self):
+    def start_backward(self):
         if self.enable:
-            self.try_time_s[self.try_i].record()
+            self.backward_time_s[self.backward_i].record()
             
-    def end_try(self):
+    def end_backward(self):
         if self.enable:
-            self.try_time_e[self.try_i].record()
-            self.try_i += 1
-            if self.try_i == self.len_cache:
+            self.backward_time_e[self.backward_i].record()
+            self.backward_i += 1
+            if self.backward_i == self.len_cache:
                 torch.cuda.synchronize()
-                for s, e in zip(self.try_time_s[:self.try_i], self.try_time_e[:self.try_i]):
-                    self.try_time += s.elapsed_time(e) / 1000
-                self.try_i = 0
+                for s, e in zip(self.backward_time_s[:self.backward_i], self.backward_time_e[:self.backward_i]):
+                    self.backward_time += s.elapsed_time(e) / 1000
+                self.backward_i = 0
 
 
 timer = Timer()

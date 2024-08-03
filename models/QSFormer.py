@@ -269,12 +269,12 @@ class QSFormer(nn.Module):
         patches_data = patches_data.reshape(batch_size, src_num_patches + dst_num_patches, self.num_channels * self.channel_embedding_dim)
         
         if not no_time:
-            globals.timer.start_transform()
+            globals.timer.start_forward()
         # Tensor, shape (batch_size, src_num_patches + dst_num_patches, num_channels * channel_embedding_dim)
         for transformer in self.transformers:
             patches_data = transformer(patches_data)
         if not no_time:
-            globals.timer.end_transform()
+            globals.timer.end_forward()
             
         # src_patches_data, Tensor, shape (batch_size, src_num_patches, num_channels * channel_embedding_dim)
         src_patches_data = patches_data[:, : src_num_patches, :]
