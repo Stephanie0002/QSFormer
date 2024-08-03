@@ -8,17 +8,12 @@ import warnings
 import json
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from models.EnFormer import EnFormer
 from models.QSFormer import QSFormer
-from models.FFNFormer import FFNFormer
-from models.TpprFormer import TpprFormer
 from models.RepeatMixer import RepeatMixer
 
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 
-from models.CrossFormer import CrossFormer
 from models.TGAT import TGAT
 from models.MemoryModel import MemoryModel, compute_src_dst_node_time_shifts
 from models.CAWN import CAWN
@@ -155,17 +150,6 @@ if __name__ == "__main__":
                                          time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                          max_input_sequence_length=args.max_input_sequence_length, device=args.device)
-        elif args.model_name == 'EnFormer':
-            dynamic_backbone = EnFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
-                                         num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
-                                         max_input_sequence_length=args.max_input_sequence_length, device=args.device, no_id_encode=args.no_id_encode)
-        elif args.model_name == 'CrossFormer':
-            dynamic_backbone = CrossFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
-                                         num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
-                                         max_input_sequence_length=args.max_input_sequence_length, device=args.device,
-                                         hops = args.num_hops)
         elif args.model_name == 'QSFormer':
             dynamic_backbone = QSFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                          time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
@@ -173,21 +157,6 @@ if __name__ == "__main__":
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                          max_input_sequence_length=args.max_input_sequence_length, num_high_order_neighbors=args.num_high_order_neighbors, 
                                          device=args.device, hops = args.num_hops, no_id_encode=args.no_id_encode, dim_expansion_factor=args.dim_expansion_factor)
-        elif args.model_name == 'TpprFormer':
-            dynamic_backbone = TpprFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
-                                         cross_edge_neighbor_feat_dim=args.cross_edge_neighbor_feat_dim,
-                                         patch_size=args.patch_size,
-                                         num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
-                                         max_input_sequence_length=args.max_input_sequence_length, device=args.device,
-                                         hops = args.num_hops)
-        elif args.model_name == 'FFNFormer':
-            dynamic_backbone = FFNFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
-                                         time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
-                                         cross_edge_neighbor_feat_dim=args.cross_edge_neighbor_feat_dim, patch_size=args.patch_size,
-                                         num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
-                                         max_input_sequence_length=args.max_input_sequence_length, num_high_order_neighbors=args.num_high_order_neighbors, 
-                                         device=args.device, hops = args.num_hops, no_id_encode=args.no_id_encode)
         else:
             raise ValueError(f"Wrong value for model_name {args.model_name}!")
         
@@ -220,7 +189,7 @@ if __name__ == "__main__":
         for epoch in range(args.num_epochs):
 
             model.train()
-            if args.model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'EnFormer', 'CrossFormer', 'QSFormer','TpprFormer','FFNFormer']:
+            if args.model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer']:
                 # training, only use training graph
                 model[0].set_neighbor_sampler(train_neighbor_sampler)
             if args.model_name in ['RepeatMixer']:
@@ -320,7 +289,7 @@ if __name__ == "__main__":
                                                                           node_interact_times=batch_node_interact_times,
                                                                           num_neighbors=args.num_neighbors,
                                                                           time_gap=args.time_gap)
-                elif args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer','QSFormer','TpprFormer','FFNFormer']:
+                elif args.model_name in ['DyGFormer', 'QSFormer']:
                     # get temporal embedding of source and destination nodes
                     # two Tensors, with shape (batch_size, node_feat_dim)
                     batch_src_node_embeddings, batch_dst_node_embeddings = \
@@ -492,7 +461,7 @@ if __name__ == "__main__":
         logger.info(f'get final performance on dataset {args.dataset_name}...')
         
         set_random_seed(seed=run)
-        if args.model_name not in ['FFNFormer', 'QSFormer', 'EnFormer', 'CrossFormer']:
+        if args.model_name not in ['QSFormer']:
                 full_neighbor_sampler.reset_random_state()
         val_neg_edge_sampler.reset_random_state()
         new_node_val_neg_edge_sampler.reset_random_state()
@@ -611,7 +580,7 @@ if __name__ == "__main__":
                 "test metrics": {metric_name: f'{test_metric_dict[metric_name]:.4f}' for metric_name in test_metric_dict},
                 "new node test metrics": {metric_name: f'{new_node_test_metric_dict[metric_name]:.4f}' for metric_name in new_node_test_metric_dict}
             }
-        if args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer', 'QSFormer','TpprFormer','FFNFormer']:
+        if args.model_name in ['DyGFormer', 'QSFormer']:
             result_json['time'] = globals.timer.get_all(epoch=stop_epoch)
             
         result_json = json.dumps(result_json, indent=4)
