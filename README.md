@@ -48,6 +48,25 @@ Dynamic link prediction under both transductive and inductive settings with thre
 using 1:49 test, 1:9 validation, 1:1 train negative sampling ratio.
 
 
+## Executing Scripts
+
+### Scripts for Dynamic Link Prediction
+Dynamic link prediction could be performed on all the thirteen datasets. 
+If you want to load the best model configurations determined by the grid search, please set the *load_best_configs* argument to True.
+#### Model Training
+* If you want to use the best model configurations to train *QSFormer* on *Wikipedia* dataset, run
+```{bash}
+python train_link_prediction.py --dataset_name wikipedia --model_name QSFormer --load_best_configs --gpu 0
+```
+#### Model Evaluation
+Three (i.e., random, historical, and inductive) negative sampling strategies can be used for model evaluation.
+```
+* If you want to use the best model configurations to evaluate *QSFormer* with *random* negative sampling strategy on *Wikipedia* dataset, run
+```{bash}
+python evaluate_link_prediction.py --dataset_name wikipedia --model_name QSFormer --negative_sample_strategy random --load_best_configs --gpu 0
+```
+
+
 ## Citation
 
 Please consider citing our paper when using this project.
@@ -107,7 +126,6 @@ Eight popular continuous-time dynamic graph learning methods are included in DyG
 Our recent work [DyGFormer](https://arxiv.org/abs/2303.13047) is also integrated into DyGLib, which can explore the correlations of the source node and destination node by a neighbor co-occurrence encoding scheme, and
 effectively and efficiently benefit from longer histories via a patching technique.
 ![](figures/DyGFormer_framework.jpg)
-
 
 ## Evaluation Tasks
 
