@@ -28,7 +28,7 @@ cd preprocess_data/
 python preprocess_all_data.py
 ```
 
-## Dynamic Graph Learning Models
+## Dynamic Graph Learning BaseLines
 
 Nine popular continuous-time dynamic graph learning baselines are included, including 
 [JODIE](https://dl.acm.org/doi/10.1145/3292500.3330895), 
