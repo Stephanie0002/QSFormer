@@ -1,9 +1,61 @@
-# Towards Better Dynamic Graph Learning: New Architecture and Unified Library
-This repository is built for the paper [Towards Better Dynamic Graph Learning: New Architecture and Unified Library](https://arxiv.org/abs/2303.13047).
+# Quick Sense Temporal Graph Transformer with Efficient Representation Augmentation
+This repository is built for the paper [Quick Sense Temporal Graph Transformer with Efficient Representation Augmentation](https://).
 
 🔔 If you have any questions or suggestions, please feel free to let us know. 
-You can directly email [Le Yu](https://yule-buaa.github.io/) using the email address yule@buaa.edu.cn or post an issue on this repository.
+You can directly email Ziqi Huang using the email address ziqi@zju.edu.cn.
 
+## Benchmark Datasets and Preprocessing
+
+Fourteen datasets are used in QSFormer, including Wikipedia, Reddit, MOOC, LastFM, Myket, Enron, Social Evo., UCI, Flights and Contact. 
+The first five datasets are bipartite, and the others only contain nodes with a single type.
+
+Most of the used original dynamic graph datasets come from [Towards Better Evaluation for Dynamic Link Prediction](https://openreview.net/forum?id=1GVpwr2Tfdg), 
+which can be downloaded [here](https://zenodo.org/record/7213796#.Y1cO6y8r30o). 
+Please download them and put them in ```DG_data``` folder. 
+The Myket dataset comes from [Effect of Choosing Loss Function when Using T-batching for Representation Learning on Dynamic Networks](https://arxiv.org/abs/2308.06862) and 
+can be accessed from [here](https://github.com/erfanloghmani/myket-android-application-market-dataset). 
+The original and preprocessed files for Myket dataset are included in this repository.
+
+We can run ```preprocess_data/preprocess_data.py``` for pre-processing the datasets.
+For example, to preprocess the *Wikipedia* dataset, we can run the following commands:
+```{bash}
+cd preprocess_data/
+python preprocess_data.py  --dataset_name wikipedia
+```
+We can also run the following commands to preprocess all the original datasets at once:
+```{bash}
+cd preprocess_data/
+python preprocess_all_data.py
+```
+
+## Dynamic Graph Learning Models
+
+Nine popular continuous-time dynamic graph learning baselines are included, including 
+[JODIE](https://dl.acm.org/doi/10.1145/3292500.3330895), 
+[DyRep](https://openreview.net/forum?id=HyePrhR5KX), 
+[TGAT](https://openreview.net/forum?id=rJeW1yHYwH), 
+[TGN](https://arxiv.org/abs/2006.10637), 
+[CAWN](https://openreview.net/forum?id=KYPz4YsCPj), 
+[EdgeBank](https://openreview.net/forum?id=1GVpwr2Tfdg), 
+[TCL](https://arxiv.org/abs/2105.07944),
+[GraphMixer](https://openreview.net/forum?id=ayPPc0SyLv1), and 
+[RepeatMixer](https://arxiv.org/abs/2405.17473).
+
+
+## Evaluation Tasks
+
+Dynamic link prediction under both transductive and inductive settings with three (i.e., random, historical, and inductive) negative sampling strategies, 
+using 1:49 test, 1:9 validation, 1:1 train negative sampling ratio.
+
+
+## Citation
+
+Please consider citing our paper when using this project.
+```
+To be released.
+```
+
+<!--
 ## 💥 News 💥
 
 - 🔥🔥🔥[2023/09] Our paper is accepted by **NeurIPS 2023 (Poster)**. The camera ready version is coming soon.
@@ -149,3 +201,4 @@ Please consider citing our paper when using this project.
   year={2023}
 }
 ```
+--!>
