@@ -59,8 +59,7 @@ If you want to load the best model configurations determined by the grid search,
 python train_link_prediction.py --dataset_name wikipedia --model_name QSFormer --load_best_configs --gpu 0
 ```
 #### Model Evaluation
-Three (i.e., random, historical, and inductive) negative sampling strategies can be used for model evaluation.
-```
+Three (i.e., random, historical, and inductive) negative sampling strategies can be used for model evaluation, using 1:49 test, 1:9 validation, 1:1 train negative sampling ratio.
 * If you want to use the best model configurations to evaluate *QSFormer* with *random* negative sampling strategy on *Wikipedia* dataset, run
 ```{bash}
 python evaluate_link_prediction.py --dataset_name wikipedia --model_name QSFormer --negative_sample_strategy random --load_best_configs --gpu 0
