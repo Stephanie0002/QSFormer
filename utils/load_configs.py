@@ -257,7 +257,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         else:
             args.dropout = 0.1
         args.sample_neighbor_strategy = 'recent'
-    elif args.model_name in ['DyGFormer', 'EnFormer', 'CrossFormer']:
+    elif args.model_name in ['DyGFormer']:
         args.num_layers = 2
         args.order = 'gradient-0.08-3' if args.model_name == 'EnFormer' else 'chorno'
         if args.dataset_name in ['reddit', 'myket']:
