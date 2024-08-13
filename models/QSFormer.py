@@ -378,29 +378,21 @@ class QSFormer(nn.Module):
         """
         assert padded_nodes_neighbor_node_raw_features.shape[1] % patch_size == 0
         num_patches = padded_nodes_neighbor_node_raw_features.shape[1] // patch_size
-
-        # list of Tensors with shape (num_patches, ), each Tensor with shape (batch_size, patch_size, node_feat_dim)
-        patches_nodes_neighbor_node_raw_features, patches_nodes_edge_raw_features, \
-        patches_nodes_neighbor_time_features, patches_nodes_neighbor_co_occurrence_features = [], [], [], []
-
-        for patch_id in range(num_patches):
-            start_idx = patch_id * patch_size
-            end_idx = patch_id * patch_size + patch_size
-            patches_nodes_neighbor_node_raw_features.append(padded_nodes_neighbor_node_raw_features[:, start_idx: end_idx, :])
-            patches_nodes_edge_raw_features.append(padded_nodes_edge_raw_features[:, start_idx: end_idx, :])
-            patches_nodes_neighbor_time_features.append(padded_nodes_neighbor_time_features[:, start_idx: end_idx, :])
-            if padded_nodes_neighbor_co_occurrence_features is not None:
-                patches_nodes_neighbor_co_occurrence_features.append(padded_nodes_neighbor_co_occurrence_features[:, start_idx: end_idx, :])
-
         batch_size = len(padded_nodes_neighbor_node_raw_features)
+        
+        # Use the unfold method to perform sliding window operations directly on tensors
+        def unfold_tensor(tensor, feat_dim):
+            return tensor.permute(0, 2, 1).unfold(-1, patch_size, patch_size).permute(0, 2, 3, 1).contiguous().view(batch_size, num_patches, patch_size * feat_dim)
+
         # Tensor, shape (batch_size, num_patches, patch_size * node_feat_dim)
-        patches_nodes_neighbor_node_raw_features = torch.stack(patches_nodes_neighbor_node_raw_features, dim=1).reshape(batch_size, num_patches, patch_size * self.node_feat_dim)
+        patches_nodes_neighbor_node_raw_features = unfold_tensor(padded_nodes_neighbor_node_raw_features, self.node_feat_dim)
         # Tensor, shape (batch_size, num_patches, patch_size * edge_feat_dim)
-        patches_nodes_edge_raw_features = torch.stack(patches_nodes_edge_raw_features, dim=1).reshape(batch_size, num_patches, patch_size * self.edge_feat_dim)
+        patches_nodes_edge_raw_features = unfold_tensor(padded_nodes_edge_raw_features, self.edge_feat_dim)
         # Tensor, shape (batch_size, num_patches, patch_size * time_feat_dim)
-        patches_nodes_neighbor_time_features = torch.stack(patches_nodes_neighbor_time_features, dim=1).reshape(batch_size, num_patches, patch_size * self.time_feat_dim)
+        patches_nodes_neighbor_time_features = unfold_tensor(padded_nodes_neighbor_time_features, self.time_feat_dim)
         if padded_nodes_neighbor_co_occurrence_features is not None:
-            patches_nodes_neighbor_co_occurrence_features = torch.stack(patches_nodes_neighbor_co_occurrence_features, dim=1).reshape(batch_size, num_patches, patch_size * self.cross_edge_neighbor_feat_dim if self.no_id_encode else patch_size * (self.cross_edge_neighbor_feat_dim+self.max_input_sequence_length))
+            patches_nodes_neighbor_co_occurrence_features = unfold_tensor(padded_nodes_neighbor_co_occurrence_features,
+                                                                        self.cross_edge_neighbor_feat_dim if self.no_id_encode else self.cross_edge_neighbor_feat_dim+self.max_input_sequence_length)
 
         return patches_nodes_neighbor_node_raw_features, patches_nodes_edge_raw_features, patches_nodes_neighbor_time_features, patches_nodes_neighbor_co_occurrence_features
 
