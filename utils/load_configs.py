@@ -284,48 +284,26 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         else:
             args.dropout = 0.1
     elif args.model_name in ['QSFormer', 'FFNFormer']:
-        args.order = 'gradient-0.08-3'
         args.num_layers = 2
-        args.num_hops = 2        
+        args.order = 'gradient-0.08-3'
+        args.num_hops = 2
         args.num_high_order_neighbors = 3
-
-        if args.dataset_name in ['mooc']:
-            args.order = 'gradient-0.1'
-                
-        if args.dataset_name in ['SocialEvo', 'Contacts']:
+        
+        if args.dataset_name in ['wikipedia', 'uci', 'Contacts', 'SocialEvo']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
-            args.dim_expansion_factor = 4
-        elif args.dataset_name in ['reddit']:
+        elif args.dataset_name in ['reddit', 'myket']:
             args.max_input_sequence_length = 256
             args.patch_size = 8
-            args.dim_expansion_factor = 6
+        elif args.dataset_name in ['mooc', 'Flights','Flights', 'lastfm']:
+            args.max_input_sequence_length = 1024
+            args.patch_size = 32
         elif args.dataset_name in ['enron']:
             args.max_input_sequence_length = 256
             args.patch_size = 8
-            args.num_high_order_neighbors = 1
-            args.dim_expansion_factor = 6
-        elif args.dataset_name in ['myket']:
-            args.max_input_sequence_length = 384
-            args.patch_size = 12
-            args.dim_expansion_factor = 6
-        elif args.dataset_name in ['wikipedia']:
-            args.max_input_sequence_length = 512
-            args.patch_size = 16
-            args.dim_expansion_factor = 6
-        elif args.dataset_name in ['uci']:
-            args.max_input_sequence_length = 576
-            args.patch_size = 18
-            args.dim_expansion_factor = 8
-            args.num_high_order_neighbors = 1
-        elif args.dataset_name in ['mooc', 'Flights', 'lastfm']:
-            args.max_input_sequence_length = 1024
-            args.patch_size = 32
-            args.dim_expansion_factor = 4
         else:
             args.max_input_sequence_length = 128
             args.patch_size = 4
-            args.dim_expansion_factor = 4
         assert args.max_input_sequence_length % args.patch_size == 0
         if args.dataset_name in ['reddit', 'myket']:
             args.dropout = 0.25
@@ -333,6 +311,55 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.dropout = 0.1
         else:
             args.dropout = 0.15
+        # args.order = 'gradient-0.08-3'
+        # args.num_layers = 2
+        # args.num_hops = 2        
+        # args.num_high_order_neighbors = 3
+
+        # if args.dataset_name in ['mooc']:
+        #     args.order = 'gradient-0.1'
+                
+        # if args.dataset_name in ['SocialEvo', 'Contacts']:
+        #     args.max_input_sequence_length = 128
+        #     args.patch_size = 4
+        #     args.dim_expansion_factor = 4
+        # elif args.dataset_name in ['reddit']:
+        #     args.max_input_sequence_length = 256
+        #     args.patch_size = 8
+        #     args.dim_expansion_factor = 6
+        # elif args.dataset_name in ['enron']:
+        #     args.max_input_sequence_length = 256
+        #     args.patch_size = 8
+        #     args.num_high_order_neighbors = 1
+        #     args.dim_expansion_factor = 6
+        # elif args.dataset_name in ['myket']:
+        #     args.max_input_sequence_length = 384
+        #     args.patch_size = 12
+        #     args.dim_expansion_factor = 6
+        # elif args.dataset_name in ['wikipedia']:
+        #     args.max_input_sequence_length = 512
+        #     args.patch_size = 16
+        #     args.dim_expansion_factor = 6
+        # elif args.dataset_name in ['uci']:
+        #     args.max_input_sequence_length = 576
+        #     args.patch_size = 18
+        #     args.dim_expansion_factor = 8
+        #     args.num_high_order_neighbors = 1
+        # elif args.dataset_name in ['mooc', 'Flights', 'lastfm']:
+        #     args.max_input_sequence_length = 1024
+        #     args.patch_size = 32
+        #     args.dim_expansion_factor = 4
+        # else:
+        #     args.max_input_sequence_length = 128
+        #     args.patch_size = 4
+        #     args.dim_expansion_factor = 4
+        # assert args.max_input_sequence_length % args.patch_size == 0
+        # if args.dataset_name in ['reddit', 'myket']:
+        #     args.dropout = 0.25
+        # elif args.dataset_name in ['enron', 'Contacts']:
+        #     args.dropout = 0.1
+        # else:
+        #     args.dropout = 0.15
     else:
         raise ValueError(f"Wrong value for model_name {args.model_name}!")
     
