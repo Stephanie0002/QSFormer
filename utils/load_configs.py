@@ -296,11 +296,16 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.patch_size = 4
             args.num_layers = 3
             args.dropout = 0.25
+        elif args.dataset_name in ['reddit']:
+            args.max_input_sequence_length = 256
+            args.patch_size = 8
+            args.dim_expansion_factor = 2
+            args.dropout = 0.25
         elif args.dataset_name in ['uci']:
             args.max_input_sequence_length = 512
             args.patch_size = 16
             args.dropout = 0.15
-        elif args.dataset_name in ['reddit', 'myket']:
+        elif args.dataset_name in ['myket']:
             args.max_input_sequence_length = 256
             args.patch_size = 8
             args.dim_expansion_factor = 2
