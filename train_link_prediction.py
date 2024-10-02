@@ -72,6 +72,11 @@ if __name__ == "__main__":
     new_node_val_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=new_node_val_data.src_node_ids, dst_node_ids=new_node_val_data.dst_node_ids, seed=1)
     test_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=full_data.src_node_ids, dst_node_ids=full_data.dst_node_ids, seed=2)
     new_node_test_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=new_node_test_data.src_node_ids, dst_node_ids=new_node_test_data.dst_node_ids, seed=3)
+    
+    # hist
+    hist_train_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=train_data.src_node_ids, dst_node_ids=train_data.dst_node_ids, interact_times=train_data.node_interact_times, last_observed_time=train_data.node_interact_times[0], negative_sample_strategy='historical', seed=0)
+    hist_val_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=full_data.src_node_ids, dst_node_ids=full_data.dst_node_ids, interact_times=full_data.node_interact_times, last_observed_time=train_data.node_interact_times[-1], negative_sample_strategy='historical', seed=0)
+    hist_test_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=full_data.src_node_ids, dst_node_ids=full_data.dst_node_ids, interact_times=full_data.node_interact_times, last_observed_time=val_data.node_interact_times[-1], negative_sample_strategy='historical', seed=2)
 
     # get data loaders
     train_idx_data_loader = get_idx_data_loader(len(train_data.src_node_ids), batch_size=args.batch_size, order=args.order, device='cpu', edge_deg=None)
@@ -202,7 +207,9 @@ if __name__ == "__main__":
             # store train losses and metrics
             train_losses, train_metrics = [], []
             train_idx_data_loader_tqdm = tqdm(train_idx_data_loader)
+            hist_train_neg_edge_sampler.historical_edges=None
             globals.timer.start_train()
+            predict_time = 0
             for batch_idx, train_data_indices in enumerate(train_idx_data_loader_tqdm):
                 train_data_indices = train_data_indices.numpy()
                 batch_src_node_ids, batch_dst_node_ids, batch_node_interact_times, batch_edge_ids = \
@@ -211,6 +218,16 @@ if __name__ == "__main__":
 
                 _, batch_neg_dst_node_ids = train_neg_edge_sampler.sample(size=len(batch_src_node_ids)*args.train_neg_size)
                 batch_neg_src_node_ids = batch_src_node_ids.repeat(args.train_neg_size)
+
+                if args.model_name in ['QSFormer']:
+                    hist_batch_neg_src_node_ids, hist_batch_neg_dst_node_ids = hist_train_neg_edge_sampler.sample(size=int(len(batch_src_node_ids)*0.01),
+                                                                            batch_src_node_ids=batch_src_node_ids,
+                                                                            batch_dst_node_ids=batch_dst_node_ids,
+                                                                            current_batch_start_time=batch_node_interact_times[0],
+                                                                            current_batch_end_time=batch_node_interact_times[-1])
+                    hist_place = torch.tensor(torch.randperm(len(batch_src_node_ids))[:len(hist_batch_neg_src_node_ids)])
+                    batch_neg_src_node_ids[hist_place] = hist_batch_neg_src_node_ids
+                    batch_neg_dst_node_ids[hist_place] = hist_batch_neg_dst_node_ids
 
                 # we need to compute for positive and negative edges respectively, because the new sampling strategy (for evaluation) allows the negative source nodes to be
                 # different from the source nodes, this is different from previous works that just replace destination nodes with negative destination nodes
@@ -313,7 +330,7 @@ if __name__ == "__main__":
                 else:
                     positive_probabilities = model[1](input_1=batch_src_node_embeddings, input_2=batch_dst_node_embeddings).squeeze(dim=-1).sigmoid()
                     negative_probabilities = model[1](input_1=batch_neg_src_node_embeddings, input_2=batch_neg_dst_node_embeddings).squeeze(dim=-1).sigmoid()
-
+                
                 predicts = torch.cat([positive_probabilities, negative_probabilities], dim=0)
                 labels = torch.cat([torch.ones_like(positive_probabilities), torch.zeros_like(negative_probabilities)], dim=0)
 
@@ -322,7 +339,7 @@ if __name__ == "__main__":
                 train_losses.append(loss.item())
 
                 train_metrics.append(get_link_prediction_metrics(y_pred_pos=positive_probabilities, y_pred_neg=negative_probabilities, labels=labels))
-
+                
                 globals.timer.start_backward()
                 optimizer.zero_grad()
                 loss.backward()
@@ -331,7 +348,7 @@ if __name__ == "__main__":
                                 
                 with torch.no_grad():
                     if args.order.startswith('gradient'):
-                        weights = positive_probabilities.cpu()
+                        weights = positive_probabilities.detach().to("cpu", non_blocking=True)
                         weights = torch.special.expit(weights)
                         train_idx_data_loader.update_gradient(train_data_indices, weights)
 
@@ -341,7 +358,7 @@ if __name__ == "__main__":
                     # detach the memories and raw messages of nodes in the memory bank after each batch, so we don't back propagate to the start of time
                     model[0].memory_bank.detach_memory_bank()
             globals.timer.end_train()
-
+            
             if args.model_name in ['JODIE', 'DyRep', 'TGN']:
                 # backup memory bank after training so it can be used for new validation nodes
                 train_backup_memory_bank = model[0].memory_bank.backup_memory_bank()
@@ -353,6 +370,28 @@ if __name__ == "__main__":
                 neighbor_sampler=full_neighbor_sampler,
                 evaluate_idx_data_loader=val_idx_data_loader,
                 evaluate_neg_edge_sampler=val_neg_edge_sampler,
+                evaluate_data=val_data,
+                loss_func=loss_func,
+                num_neighbors=args.num_neighbors,
+                time_gap=args.time_gap,
+                neg_size=args.val_neg_size)
+            globals.timer.end_val()
+            
+            if args.model_name in ['JODIE', 'DyRep', 'TGN']:
+                # backup memory bank after validating so it can be used for testing nodes (since test edges are strictly later in time than validation edges)
+                val_backup_memory_bank = model[0].memory_bank.backup_memory_bank()
+
+                # reload training memory bank for new validation nodes
+                model[0].memory_bank.reload_memory_bank(train_backup_memory_bank)
+            
+            # add 测试hist
+            globals.timer.start_val()
+            hist_val_losses, hist_val_metrics = evaluate_model_link_prediction(model_name=args.model_name,
+                model=model,
+                edge_neighbor_sampler=full_edge_neighbor_sampler,
+                neighbor_sampler=full_neighbor_sampler,
+                evaluate_idx_data_loader=val_idx_data_loader,
+                evaluate_neg_edge_sampler=hist_val_neg_edge_sampler,
                 evaluate_data=val_data,
                 loss_func=loss_func,
                 num_neighbors=args.num_neighbors,
@@ -392,6 +431,8 @@ if __name__ == "__main__":
             logger.info(f'validate loss: {np.mean(val_losses):.4f}')
             for metric_name in val_metrics[0].keys():
                 logger.info(f'validate {metric_name}, {np.mean([val_metric[metric_name] for val_metric in val_metrics]):.4f}')
+            for metric_name in hist_val_metrics[0].keys():
+                logger.info(f'hist validate {metric_name}, {np.mean([hist_val_metric[metric_name] for hist_val_metric in hist_val_metrics]):.4f}')
             logger.info(f'new node validate loss: {np.mean(new_node_val_losses):.4f}')
             for metric_name in new_node_val_metrics[0].keys():
                 logger.info(f'new node validate {metric_name}, {np.mean([new_node_val_metric[metric_name] for new_node_val_metric in new_node_val_metrics]):.4f}')
@@ -408,6 +449,22 @@ if __name__ == "__main__":
                     neighbor_sampler=full_neighbor_sampler,
                     evaluate_idx_data_loader=test_idx_data_loader,
                     evaluate_neg_edge_sampler=test_neg_edge_sampler,
+                    evaluate_data=test_data,
+                    loss_func=loss_func,
+                    num_neighbors=args.num_neighbors,
+                    time_gap=args.time_gap,
+                    neg_size=args.test_neg_size)
+
+                if args.model_name in ['JODIE', 'DyRep', 'TGN']:
+                    # reload validation memory bank for new testing nodes
+                    model[0].memory_bank.reload_memory_bank(val_backup_memory_bank)
+                #测试hist
+                hist_test_losses, hist_test_metrics = evaluate_model_link_prediction(model_name=args.model_name,
+                    model=model,
+                    edge_neighbor_sampler=full_edge_neighbor_sampler,
+                    neighbor_sampler=full_neighbor_sampler,
+                    evaluate_idx_data_loader=test_idx_data_loader,
+                    evaluate_neg_edge_sampler=hist_test_neg_edge_sampler,
                     evaluate_data=test_data,
                     loss_func=loss_func,
                     num_neighbors=args.num_neighbors,
@@ -438,6 +495,8 @@ if __name__ == "__main__":
                 logger.info(f'test loss: {np.mean(test_losses):.4f}')
                 for metric_name in test_metrics[0].keys():
                     logger.info(f'test {metric_name}, {np.mean([test_metric[metric_name] for test_metric in test_metrics]):.4f}')
+                for metric_name in hist_test_metrics[0].keys():
+                    logger.info(f'hist test {metric_name}, {np.mean([hist_test_metric[metric_name] for hist_test_metric in hist_test_metrics]):.4f}')
                 logger.info(f'new node test loss: {np.mean(new_node_test_losses):.4f}')
                 for metric_name in new_node_test_metrics[0].keys():
                     logger.info(f'new node test {metric_name}, {np.mean([new_node_test_metric[metric_name] for new_node_test_metric in new_node_test_metrics]):.4f}')
@@ -513,6 +572,23 @@ if __name__ == "__main__":
         if args.model_name in ['JODIE', 'DyRep', 'TGN']:
             # reload validation memory bank for new testing nodes
             model[0].memory_bank.reload_memory_bank(val_backup_memory_bank)
+            
+        # 测试hist和ind
+        hist_test_losses, hist_test_metrics = evaluate_model_link_prediction(model_name=args.model_name,
+            model=model,
+            edge_neighbor_sampler=full_edge_neighbor_sampler,
+            neighbor_sampler=full_neighbor_sampler,
+            evaluate_idx_data_loader=test_idx_data_loader,
+            evaluate_neg_edge_sampler=hist_test_neg_edge_sampler,
+            evaluate_data=test_data,
+            loss_func=loss_func,
+            num_neighbors=args.num_neighbors,
+            time_gap=args.time_gap,
+            neg_size=args.test_neg_size)
+
+        if args.model_name in ['JODIE', 'DyRep', 'TGN']:
+            # reload validation memory bank for new testing nodes
+            model[0].memory_bank.reload_memory_bank(val_backup_memory_bank)
 
         new_node_test_losses, new_node_test_metrics = evaluate_model_link_prediction(model_name=args.model_name,
             model=model,
@@ -553,6 +629,11 @@ if __name__ == "__main__":
             logger.info(f'new node test {metric_name}, {average_new_node_test_metric:.4f}')
             new_node_test_metric_dict[metric_name] = average_new_node_test_metric
 
+        logger.info(f'hist test loss: {np.mean(hist_test_losses):.4f}')
+        for metric_name in hist_test_metrics[0].keys():
+            average_hist_test_metric = np.mean([hist_test_metric[metric_name] for hist_test_metric in hist_test_metrics])
+            logger.info(f'hist test {metric_name}, {average_hist_test_metric:.4f}')
+        
         single_run_time = time.time() - run_start_time
         logger.info(f'Run {run + 1} cost {single_run_time:.2f} seconds.')
 
