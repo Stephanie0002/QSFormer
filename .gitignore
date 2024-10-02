@@ -38,3 +38,4 @@ log.*
 # 忽略数据分析文件
 analysis_*
 extract_efficiency.py
+extract_ablation.py
