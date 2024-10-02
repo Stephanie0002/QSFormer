@@ -64,12 +64,13 @@ class QSFormer(nn.Module):
             
         self.compress_layer = FeedForward(dims=self.max_input_sequence_length//(self.num_high_order_neighbors+1), out_dims=self.cross_edge_neighbor_feat_dim, dropout=dropout, use_single_layer=True)
         
+        max_input_sequence_length = self.max_input_sequence_length//(self.num_high_order_neighbors+1) if self.hops==2 else self.max_input_sequence_length
         self.projection_layer = nn.ModuleDict({
             'node': FeedForward(dims=self.patch_size * self.node_feat_dim, out_dims=self.channel_embedding_dim, dropout=dropout, use_single_layer=True),
             'edge': FeedForward(dims=self.patch_size * self.edge_feat_dim, out_dims=self.channel_embedding_dim, dropout=dropout, use_single_layer=True),
             'time': FeedForward(dims=self.patch_size * self.time_feat_dim, out_dims=self.channel_embedding_dim, dropout=dropout, use_single_layer=True),
             'neighbor_co_occurrence': FeedForward(
-                dims= self.patch_size * self.cross_edge_neighbor_feat_dim if self.no_id_encode else self.patch_size * (self.cross_edge_neighbor_feat_dim+self.max_input_sequence_length//(self.num_high_order_neighbors+1)), 
+                dims= self.patch_size * self.cross_edge_neighbor_feat_dim if self.no_id_encode else self.patch_size * (self.cross_edge_neighbor_feat_dim+max_input_sequence_length), 
                 out_dims=self.channel_embedding_dim, 
                 dropout=dropout, use_single_layer=True)
         })
@@ -103,7 +104,7 @@ class QSFormer(nn.Module):
             self.neighbor_sampler.set_fanouts([self.max_input_sequence_length//(self.num_high_order_neighbors+1), self.num_high_order_neighbors])
         else:
             self.neighbor_sampler.set_fanouts([self.max_input_sequence_length,])
-        max_input_sequence_length = self.max_input_sequence_length//(1+self.num_high_order_neighbors)
+        max_input_sequence_length = self.max_input_sequence_length//(1+self.num_high_order_neighbors) if self.hops==2 else self.max_input_sequence_length
         src_node_ids_th, dst_node_ids_th, node_interact_times_th = torch.from_numpy(src_node_ids), torch.from_numpy(dst_node_ids), torch.from_numpy(node_interact_times)
         # get the n-hop neighbors of source and destination nodes
         # three lists to store source nodes' n-hop neighbor ids, edge ids and interaction timestamp information, with batch_size as the list length
@@ -135,8 +136,8 @@ class QSFormer(nn.Module):
         dst_padded_nodes_neighbor_co_occurrence_features = self.neighbor_co_occurrence_encode_layer(dst_padded_nodes_appearances.unsqueeze(dim=-1)).sum(dim=2)
             
         if self.hops==2:
-            # src_padded_nodes_appearances, Tensor, shape (batch_size, src_max_seq_length, 2)
-            # dst_padded_nodes_appearances, Tensor, shape (batch_size, dst_max_seq_length, 2)
+            # src_padded_nodes_appearances, Tensor, shape (batch_size, src_max_seq_length, cross_edge_neighbor_feat_dim)
+            # dst_padded_nodes_appearances, Tensor, shape (batch_size, dst_max_seq_length, cross_edge_neighbor_feat_dim)
             src_padded_nodes_neighbor_co_occurrence_features = self.neighbor_pooling(src_padded_nodes_neighbor_co_occurrence_features[:, :max_input_sequence_length, :], src_padded_nodes_neighbor_co_occurrence_features[:, max_input_sequence_length:, :], self.num_high_order_neighbors, 'mean')
             src_padded_nodes_neighbor_co_occurrence_features = self.aggregate_layer(src_padded_nodes_neighbor_co_occurrence_features)
             
@@ -157,7 +158,6 @@ class QSFormer(nn.Module):
             # src_iden_encode = self.compress_layer(src_iden_encode)
             # src_iden_encode = torch.cat([src_iden_encode, torch.zeros_like(src_padded_nodes_neighbor_co_occurrence_features[:,max_input_sequence_length:,:], device=self.device)], dim=1)
             src_padded_nodes_neighbor_co_occurrence_features = torch.cat([src_padded_nodes_neighbor_co_occurrence_features, src_iden_encode], dim=2)
-            src_padded_nodes_neighbor_co_occurrence_features = torch.cat([src_padded_nodes_neighbor_co_occurrence_features, torch.zeros([src_padded_nodes_neighbor_co_occurrence_features.shape[0], self.max_input_sequence_length - max_input_sequence_length, src_padded_nodes_neighbor_co_occurrence_features.shape[2]], device=self.device)], dim=1)
             
             # dst_iden_encode: shape#[batch_size, src_max_seq_length, cross_edge_neighbor_feat_dim + src_max_seq_length]
             dst_padded_nodes_1_neighbor_ids = dst_padded_nodes_neighbor_ids[:, :max_input_sequence_length]
@@ -169,9 +169,11 @@ class QSFormer(nn.Module):
             # dst_iden_encode = torch.cat([dst_iden_encode, torch.zeros_like(dst_padded_nodes_neighbor_co_occurrence_features[:,max_input_sequence_length:,:], device=self.device)], dim=1)
             
             # dst_iden_encode: shape#[batch_size, dst_max_seq_length, cross_edge_neighbor_feat_dim + dst_max_seq_length]
-            dst_padded_nodes_neighbor_co_occurrence_features = torch.cat([dst_padded_nodes_neighbor_co_occurrence_features, dst_iden_encode], dim=2)
-            dst_padded_nodes_neighbor_co_occurrence_features = torch.cat([dst_padded_nodes_neighbor_co_occurrence_features, torch.zeros([dst_padded_nodes_neighbor_co_occurrence_features.shape[0], self.max_input_sequence_length - max_input_sequence_length, dst_padded_nodes_neighbor_co_occurrence_features.shape[2]], device=self.device)], dim=1)
-            
+            dst_padded_nodes_neighbor_co_occurrence_features = torch.cat([dst_padded_nodes_neighbor_co_occurrence_features, dst_iden_encode], dim=2)        
+        
+        src_padded_nodes_neighbor_co_occurrence_features = torch.cat([src_padded_nodes_neighbor_co_occurrence_features, torch.zeros([src_padded_nodes_neighbor_co_occurrence_features.shape[0], self.max_input_sequence_length - max_input_sequence_length, src_padded_nodes_neighbor_co_occurrence_features.shape[2]], device=self.device)], dim=1)
+        dst_padded_nodes_neighbor_co_occurrence_features = torch.cat([dst_padded_nodes_neighbor_co_occurrence_features, torch.zeros([dst_padded_nodes_neighbor_co_occurrence_features.shape[0], self.max_input_sequence_length - max_input_sequence_length, dst_padded_nodes_neighbor_co_occurrence_features.shape[2]], device=self.device)], dim=1)
+        
         # src_padded_nodes_neighbor_co_occurrence_features = torch.zeros(src_padded_nodes_neighbor_ids.shape[0], src_padded_nodes_neighbor_ids.shape[1], self.cross_edge_neighbor_feat_dim + self.max_input_sequence_length, device=self.device)
         # dst_padded_nodes_neighbor_co_occurrence_features = torch.zeros(dst_padded_nodes_neighbor_ids.shape[0], dst_padded_nodes_neighbor_ids.shape[1], self.cross_edge_neighbor_feat_dim + self.max_input_sequence_length, device=self.device)
         if not no_time:
@@ -370,8 +372,9 @@ class QSFormer(nn.Module):
         # Tensor, shape (batch_size, num_patches, patch_size * time_feat_dim)
         patches_nodes_neighbor_time_features = unfold_tensor(padded_nodes_neighbor_time_features, self.time_feat_dim)
         if padded_nodes_neighbor_co_occurrence_features is not None:
+            max_input_sequence_length = self.max_input_sequence_length//(self.num_high_order_neighbors+1) if self.hops==2 else self.max_input_sequence_length
             patches_nodes_neighbor_co_occurrence_features = unfold_tensor(padded_nodes_neighbor_co_occurrence_features,
-                                                                        self.cross_edge_neighbor_feat_dim if self.no_id_encode else self.cross_edge_neighbor_feat_dim+self.max_input_sequence_length//(self.num_high_order_neighbors+1))
+                                                                        self.cross_edge_neighbor_feat_dim if self.no_id_encode else self.cross_edge_neighbor_feat_dim+max_input_sequence_length)
 
         return patches_nodes_neighbor_node_raw_features, patches_nodes_edge_raw_features, patches_nodes_neighbor_time_features, patches_nodes_neighbor_co_occurrence_features
 
