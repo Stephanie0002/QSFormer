@@ -61,6 +61,8 @@ for root, dirs, files in os.walk(folder_path):
         # file_path = files[-1]
         file_path = os.path.join(root, file_name)
         
+        if '.pdf' in file_path or '.py' in file_path or '.svg' in file_path:
+            continue
         # 读取文件内容
         with open(file_path, 'r') as file:
             content = file.read()                    

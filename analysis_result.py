@@ -11,6 +11,7 @@ data = {
     'DyRep': [0.0]*33,
     'TGAT': [0.0]*33,
     'TGN': [0.0]*33,
+    'CAWN': [0.0]*33,
     'EdgeBank': [0.0]*33,
     'TCL': [0.0]*33,
     'GraphMixer': [0.0]*33,
@@ -26,7 +27,7 @@ neg_mapping = {'rnd':'random', 'hist':'historical', 'ind':'inductive'}
 metric = 'test average_precision' # 'test average_precision' 'new node test average_precision'
 
 for neg in ['rnd', 'hist', 'ind']:
-    for model in ['JODIE', 'DyRep', 'TGAT', 'TGN', 'EdgeBank', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer']:
+    for model in ['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer']:
         for dataset in ['Wiki', 'UCI', 'Reddit', 'Enron', 'Mooc', 'LastFM', 'Flights', 'myket', 'SocialEvo', 'Contacts']:
             mask_target = (out_df['NSS'] == neg) & (out_df['DataSets'] == dataset)
             mask_src = (df['model_seed'].str.lower().str.contains(model.lower())) & (df['model_seed'].str.lower().str.contains(neg_mapping[neg])) & (df['dataset'].str.lower().str.contains(dataset.lower()))
@@ -36,8 +37,8 @@ for neg in ['rnd', 'hist', 'ind']:
             # print(out_df.loc[mask_target, model].values)
     mask_avg_rank = (out_df['NSS'] == neg) & (out_df['DataSets'] == 'Avg.Rank')
     mask_dataset_line = (out_df['NSS'] == neg) & (out_df['DataSets'] != 'Avg.Rank')
-    # print(f'Processing {neg}\n', out_df.loc[mask_dataset_line, ['JODIE', 'DyRep', 'TGAT', 'TGN', 'EdgeBank', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer']].rank(axis=1, method='min', ascending=False))
-    out_df.iloc[np.where(mask_avg_rank)[0], 2:] = out_df.loc[mask_dataset_line, ['JODIE', 'DyRep', 'TGAT', 'TGN', 'EdgeBank', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer']].rank(axis=1, method='max', ascending=False).mean(axis=0)
+    # print(f'Processing {neg}\n', out_df.loc[mask_dataset_line, ['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer']].rank(axis=1, method='min', ascending=False))
+    out_df.iloc[np.where(mask_avg_rank)[0], 2:] = out_df.loc[mask_dataset_line, ['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'RepeatMixer', 'DyGFormer', 'QSFormer']].rank(axis=1, method='max', ascending=False).mean(axis=0)
 
 def percentage_format(x):
     if x==0.0:
