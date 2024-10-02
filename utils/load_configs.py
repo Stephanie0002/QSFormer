@@ -299,7 +299,8 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         elif args.dataset_name in ['reddit']:
             args.max_input_sequence_length = 256
             args.patch_size = 8
-            args.dim_expansion_factor = 2
+            args.dim_expansion_factor = 4
+            args.num_layers = 3
             args.dropout = 0.25
         elif args.dataset_name in ['uci']:
             args.max_input_sequence_length = 512
@@ -322,10 +323,12 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
         elif args.dataset_name in ['Contacts']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
-            args.dropout = 0.0
+            args.num_layers = 3
+            args.dropout = 0.1
         elif args.dataset_name in ['SocialEvo']:
             args.max_input_sequence_length = 64
             args.patch_size = 2
+            args.num_layers = 3
             args.dropout = 0.15
         else:
             args.max_input_sequence_length = 128
