@@ -384,7 +384,7 @@ class QSFormer(nn.Module):
         
         # Use the unfold method to perform sliding window operations directly on tensors
         def unfold_tensor(tensor, feat_dim):
-            return tensor.unfold(1, patch_size, patch_size).permute(0, 3, 1, 2).contiguous().view(batch_size, num_patches, patch_size * feat_dim)
+            return tensor.permute(0, 2, 1).unfold(-1, patch_size, patch_size).permute(0, 2, 3, 1).contiguous().view(batch_size, num_patches, patch_size * feat_dim)
 
         # Tensor, shape (batch_size, num_patches, patch_size * node_feat_dim)
         patches_nodes_neighbor_node_raw_features = unfold_tensor(padded_nodes_neighbor_node_raw_features, self.node_feat_dim)
