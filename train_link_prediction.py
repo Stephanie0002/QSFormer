@@ -209,6 +209,7 @@ if __name__ == "__main__":
             # store train losses and metrics
             train_losses, train_metrics = [], []
             train_idx_data_loader_tqdm = tqdm(train_idx_data_loader)
+            train_neg_edge_sampler.historical_edges=None
             globals.timer.start_train()
             predict_time = 0
             for batch_idx, train_data_indices in enumerate(train_idx_data_loader_tqdm):
