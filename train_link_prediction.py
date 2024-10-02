@@ -77,7 +77,6 @@ if __name__ == "__main__":
     new_node_test_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=new_node_test_data.src_node_ids, dst_node_ids=new_node_test_data.dst_node_ids, seed=3)
     
     # hist
-    hist_train_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=train_data.src_node_ids, dst_node_ids=train_data.dst_node_ids, interact_times=train_data.node_interact_times, last_observed_time=train_data.node_interact_times[0], negative_sample_strategy='historical', seed=0)
     hist_val_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=full_data.src_node_ids, dst_node_ids=full_data.dst_node_ids, interact_times=full_data.node_interact_times, last_observed_time=train_data.node_interact_times[-1], negative_sample_strategy='historical', seed=0)
     hist_test_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=full_data.src_node_ids, dst_node_ids=full_data.dst_node_ids, interact_times=full_data.node_interact_times, last_observed_time=val_data.node_interact_times[-1], negative_sample_strategy='historical', seed=2)
 
