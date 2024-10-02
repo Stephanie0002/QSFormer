@@ -314,10 +314,14 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.max_input_sequence_length = 1536
             args.patch_size = 48
             args.dropout = 0.1
-        elif args.dataset_name in ['Contacts', 'SocialEvo']:
+        elif args.dataset_name in ['Contacts']:
             args.max_input_sequence_length = 128
             args.patch_size = 4
             args.dropout = 0.0
+        elif args.dataset_name in ['SocialEvo']:
+            args.max_input_sequence_length = 64
+            args.patch_size = 2
+            args.dropout = 0.15
         else:
             args.max_input_sequence_length = 128
             args.patch_size = 4
