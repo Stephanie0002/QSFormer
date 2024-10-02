@@ -21,7 +21,7 @@ from models.TCL import TCL
 from models.GraphMixer import GraphMixer
 from models.DyGFormer import DyGFormer
 from models.modules import MergeLayer, MergeSingleLayer
-from utils.utils import set_random_seed, convert_to_gpu, get_parameter_sizes, create_optimizer, NegativeEdgeSampler
+from utils.utils import set_random_seed, convert_to_gpu, get_parameter_sizes, create_optimizer, NegativeEdgeSampler, TrainNegativeEdgeSampler
 from utils.new_neighbor_sampler import get_historical_neighbor_sampler, get_neighbor_sampler
 from evaluate_models_utils import evaluate_model_link_prediction
 from utils.metrics import get_link_prediction_metrics
@@ -67,7 +67,10 @@ if __name__ == "__main__":
     # initialize negative samplers, set seeds for validation and testing so negatives are the same across different runs
     # in the inductive setting, negatives are sampled only amongst other new nodes
     # train negative edge sampler does not need to specify the seed, but evaluation samplers need to do so
-    train_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=train_data.src_node_ids, dst_node_ids=train_data.dst_node_ids)
+    if args.model_name == 'QSFormer':
+        train_neg_edge_sampler = TrainNegativeEdgeSampler(src_node_ids=train_data.src_node_ids, dst_node_ids=train_data.dst_node_ids, interact_times=train_data.node_interact_times, seed=0)
+    else:
+        train_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=train_data.src_node_ids, dst_node_ids=train_data.dst_node_ids)
     val_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=full_data.src_node_ids, dst_node_ids=full_data.dst_node_ids, seed=0)
     new_node_val_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=new_node_val_data.src_node_ids, dst_node_ids=new_node_val_data.dst_node_ids, seed=1)
     test_neg_edge_sampler = NegativeEdgeSampler(src_node_ids=full_data.src_node_ids, dst_node_ids=full_data.dst_node_ids, seed=2)
@@ -216,18 +219,9 @@ if __name__ == "__main__":
                     train_data.src_node_ids[train_data_indices], train_data.dst_node_ids[train_data_indices], \
                     train_data.node_interact_times[train_data_indices], train_data.edge_ids[train_data_indices]
 
-                _, batch_neg_dst_node_ids = train_neg_edge_sampler.sample(size=len(batch_src_node_ids)*args.train_neg_size)
-                batch_neg_src_node_ids = batch_src_node_ids.repeat(args.train_neg_size)
-
-                if args.model_name in ['QSFormer']:
-                    hist_batch_neg_src_node_ids, hist_batch_neg_dst_node_ids = hist_train_neg_edge_sampler.sample(size=int(len(batch_src_node_ids)*0.01),
-                                                                            batch_src_node_ids=batch_src_node_ids,
-                                                                            batch_dst_node_ids=batch_dst_node_ids,
-                                                                            current_batch_start_time=batch_node_interact_times[0],
-                                                                            current_batch_end_time=batch_node_interact_times[-1])
-                    hist_place = torch.tensor(torch.randperm(len(batch_src_node_ids))[:len(hist_batch_neg_src_node_ids)])
-                    batch_neg_src_node_ids[hist_place] = hist_batch_neg_src_node_ids
-                    batch_neg_dst_node_ids[hist_place] = hist_batch_neg_dst_node_ids
+                batch_neg_src_node_ids, batch_neg_dst_node_ids = train_neg_edge_sampler.sample(size=len(batch_src_node_ids)*args.train_neg_size, batch_src_node_ids=batch_src_node_ids, batch_dst_node_ids=batch_dst_node_ids, current_batch_start_time=min(batch_node_interact_times))
+                # batch_neg_src_node_ids = batch_src_node_ids.repeat(args.train_neg_size)
+                
 
                 # we need to compute for positive and negative edges respectively, because the new sampling strategy (for evaluation) allows the negative source nodes to be
                 # different from the source nodes, this is different from previous works that just replace destination nodes with negative destination nodes
