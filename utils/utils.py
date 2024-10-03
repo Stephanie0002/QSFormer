@@ -276,7 +276,7 @@ class NegativeEdgeSampler(object):
 
 class TrainNegativeEdgeSampler(object):
 
-    def __init__(self, src_node_ids: np.ndarray, dst_node_ids: np.ndarray, interact_times: np.ndarray = None, seed: int = None):
+    def __init__(self, src_node_ids: np.ndarray, dst_node_ids: np.ndarray, interact_times: np.ndarray = None, seed: int = None, args=None):
         """
         Negative Edge Sampler, which supports three strategies: "random", "historical", "inductive".
         :param src_node_ids: ndarray, (num_src_nodes, ), source node ids, num_src_nodes == num_dst_nodes
@@ -294,6 +294,7 @@ class TrainNegativeEdgeSampler(object):
         self.unique_dst_node_ids = np.unique(dst_node_ids)
         self.unique_interact_times = np.unique(interact_times)
         self.earliest_time = min(self.unique_interact_times)
+        self.args = args
         self.historical_edges = None
         self.previous_start_time = None
         
@@ -321,12 +322,13 @@ class TrainNegativeEdgeSampler(object):
         negative_src_node_ids, negative_dst_node_ids = self.random_sample(size=size)
         negative_src_node_ids = batch_src_node_ids
             
-        hard_negative_src_node_ids, hard_negative_dst_node_ids = self.train_hard_sample(size=size//100, batch_src_node_ids=batch_src_node_ids,
+        if self.args.dataset_name not in ['reddit']:
+            hard_negative_src_node_ids, hard_negative_dst_node_ids = self.train_hard_sample(size=size//100, batch_src_node_ids=batch_src_node_ids,
                                                                                   batch_dst_node_ids=batch_dst_node_ids,
                                                                                   current_batch_start_time=current_batch_start_time)
-        hard_place = torch.tensor(torch.randperm(size)[:(size//100)])
-        negative_src_node_ids[hard_place] = hard_negative_src_node_ids
-        negative_dst_node_ids[hard_place] = hard_negative_dst_node_ids
+            hard_place = torch.tensor(torch.randperm(size)[:(size//100)])
+            negative_src_node_ids[hard_place] = hard_negative_src_node_ids
+            negative_dst_node_ids[hard_place] = hard_negative_dst_node_ids
         return negative_src_node_ids, negative_dst_node_ids
 
     def random_sample(self, size: int):
