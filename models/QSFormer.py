@@ -95,10 +95,7 @@ class QSFormer(nn.Module):
         :param dst_node_ids: ndarray, shape (batch_size, )
         :param node_interact_times: ndarray, shape (batch_size, )
         :return:
-        """
-        if not no_time:
-            globals.timer.start_neighbor_sample()
-        
+        """        
         if(self.hops == 2):
             assert self.max_input_sequence_length % (self.num_high_order_neighbors+1) == 0, "max_input_sequence_length should be divisible by num_high_order_neighbors+1"
             self.neighbor_sampler.set_fanouts([self.max_input_sequence_length//(self.num_high_order_neighbors+1), self.num_high_order_neighbors])
@@ -106,6 +103,9 @@ class QSFormer(nn.Module):
             self.neighbor_sampler.set_fanouts([self.max_input_sequence_length,])
         max_input_sequence_length = self.max_input_sequence_length//(1+self.num_high_order_neighbors) if self.hops==2 else self.max_input_sequence_length
         src_node_ids_th, dst_node_ids_th, node_interact_times_th = torch.from_numpy(src_node_ids), torch.from_numpy(dst_node_ids), torch.from_numpy(node_interact_times)
+        
+        if not no_time:
+            globals.timer.start_neighbor_sample()
         # get the n-hop neighbors of source and destination nodes
         # three lists to store source nodes' n-hop neighbor ids, edge ids and interaction timestamp information, with batch_size as the list length
         self.neighbor_sampler.neighbor_sample_from_nodes(src_node_ids_th, node_interact_times_th)
