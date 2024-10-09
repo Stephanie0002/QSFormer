@@ -7,7 +7,7 @@ You can directly email Ziqi Huang using the email address ziqi@zju.edu.cn.
 
 ## Benchmark Datasets and Preprocessing
 
-Ten datasets are used in QSFormer, including Wikipedia, Reddit, MOOC, LastFM, Myket, Enron, Social Evo., UCI, Flights and Contact.
+Eight datasets are used in QSFormer, including Wikipedia, Reddit, MOOC, LastFM, Myket, UCI, Flights and Contact.
 The first five datasets are bipartite, and the others only contain nodes with a single type.
 
 Most of the used original dynamic graph datasets come from [Towards Better Evaluation for Dynamic Link Prediction](https://openreview.net/forum?id=1GVpwr2Tfdg),
@@ -43,7 +43,7 @@ Nine popular continuous-time dynamic graph learning baselines are included, incl
 [EdgeBank](https://openreview.net/forum?id=1GVpwr2Tfdg),
 [TCL](https://arxiv.org/abs/2105.07944),
 [GraphMixer](https://openreview.net/forum?id=ayPPc0SyLv1), and
-[RepeatMixer](https://arxiv.org/abs/2405.17473).
+[DyGFormer](https://arxiv.org/abs/2303.13047).
 
 ## Evaluation Tasks
 
@@ -54,7 +54,7 @@ using 1:49 test, 1:9 validation, 1:1 train negative sampling ratio.
 
 ### Preparation
 
-Prepare a machine with gcc and python installed, and prepare the conda environment according to requirement.txt or environment.yml. 
+Prepare a machine with gcc and python installed, and prepare the conda environment according to requirement.txt or environment.yml.
 Compile the c++ sampler library we need according to the following command before running the script.
 
 ```bash
@@ -84,7 +84,7 @@ bash train_link.sh 0 QSFormer wikipedia
 
 #### Model Evaluation
 
-Three (i.e., random, historical, and inductive) negative sampling strategies can be used for model evaluation, using 1:49 test, 1:9 validation, 1:1 train negative sampling ratio.
+Two (i.e., random, historical-random) negative sampling strategies can be used for model evaluation, using 1:49 test, 1:9 validation, 1:1 train negative sampling ratio.
 
 * If you want to use the best model configurations to evaluate *QSFormer* with *random* negative sampling strategy on *Wikipedia* dataset, run
 
@@ -92,7 +92,7 @@ Three (i.e., random, historical, and inductive) negative sampling strategies can
 python evaluate_link_prediction.py --dataset_name wikipedia --model_name QSFormer --negative_sample_strategy random --load_best_configs --gpu 0
 ```
 
-* If you want to use the best model configurations to evaluate *QSFormer* with *random*, *historical* and *inductive* negative sampling strategy on *Wikipedia* dataset, run
+* If you want to use the best model configurations to evaluate *QSFormer* with *random* or *historical-random* negative sampling strategy on *Wikipedia* dataset, run
 
 ```{bash}
 bash eval_link.sh 0 QSFormer wikipedia
