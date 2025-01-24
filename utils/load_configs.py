@@ -14,8 +14,8 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--dataset_name', type=str, help='dataset to be used', default='wikipedia',
                         choices=['wikipedia', 'reddit', 'myket', 'mooc', 'lastfm', 'myket', 'enron', 'SocialEvo', 'uci', 'Flights', 'CanParl', 'USLegis', 'UNtrade', 'UNvote', 'Contacts', 'askUbuntu'])
     parser.add_argument('--batch_size', type=int, default=200, help='batch size')
-    parser.add_argument('--model_name', type=str, default='DyGFormer', help='name of the model, note that EdgeBank is only applicable for evaluation',
-                        choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'DyGFormer', 'QSFormer'])
+    parser.add_argument('--model_name', type=str, default='QSFormer', help='name of the model, note that EdgeBank is only applicable for evaluation',
+                        choices=['JODIE', 'DyRep', 'TGAT', 'TGN', 'CAWN', 'EdgeBank', 'TCL', 'GraphMixer', 'DyGFormer', 'HOT', 'QSFormer'])
     parser.add_argument('--gpu', type=int, default=0, help='number of gpu to use')
     
     parser.add_argument('--num_neighbors', type=int, default=20, help='number of neighbors to sample for each node')
@@ -73,6 +73,12 @@ def get_link_prediction_args(is_evaluation: bool = False):
     parser.add_argument('--load_model_filename', type=str, help='model param file to be load', default='None')
     
     parser.add_argument('--load_best_configs', action='store_true', default=False, help='whether to load the best configurations')
+    
+    
+    parser.add_argument('--block_size', type=int, default=16, help='')
+    parser.add_argument('--num_state_vectors', type=int, default=32, help='')
+    parser.add_argument('--segment_size', type=int, default=32, help='')
+    parser.add_argument('--num2hop', type=int, default=0, help='')
     
     try:
         args = parser.parse_args()
@@ -220,7 +226,7 @@ def load_link_prediction_best_configs(args: argparse.Namespace):
             args.sample_neighbor_strategy = 'uniform'
         else:
             args.sample_neighbor_strategy = 'recent'
-    elif args.model_name in ['DyGFormer']:
+    elif args.model_name in ['DyGFormer', 'HOT']:
         args.num_layers = 2
         args.order = 'gradient-0.08-3' if args.model_name == 'EnFormer' else 'chorno'
         if args.dataset_name in ['reddit', 'myket']:

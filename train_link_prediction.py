@@ -19,6 +19,7 @@ from models.CAWN import CAWN
 from models.TCL import TCL
 from models.GraphMixer import GraphMixer
 from models.DyGFormer import DyGFormer
+from models.HOT import HOT
 from models.modules import MergeLayer, MergeSingleLayer
 from utils.utils import set_random_seed, convert_to_gpu, get_parameter_sizes, create_optimizer, NegativeEdgeSampler, TrainNegativeEdgeSampler
 from utils.new_neighbor_sampler import get_historical_neighbor_sampler, get_neighbor_sampler
@@ -130,6 +131,12 @@ if __name__ == "__main__":
                                          time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
                                          num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                          max_input_sequence_length=args.max_input_sequence_length, device=args.device)
+        elif args.model_name == 'HOT':
+            dynamic_backbone = HOT(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
+                                   time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
+                                   num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout, num2hop=args.num2hop,
+                                   block_size=args.block_size, num_state_vectors=args.num_state_vectors, segment_size=args.segment_size,
+                                   max_input_sequence_length=args.max_input_sequence_length, device=args.device)    
         elif args.model_name == 'QSFormer':
             dynamic_backbone = QSFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=train_neighbor_sampler,
                                          time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 
@@ -165,7 +172,7 @@ if __name__ == "__main__":
         for epoch in range(args.num_epochs):
 
             model.train()
-            if args.model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'QSFormer']:
+            if args.model_name in ['DyRep', 'TGAT', 'TGN', 'CAWN', 'TCL', 'GraphMixer', 'DyGFormer', 'HOT', 'QSFormer']:
                 # training, only use training graph
                 model[0].set_neighbor_sampler(train_neighbor_sampler)
             if args.model_name in ['JODIE', 'DyRep', 'TGN']:
@@ -246,7 +253,7 @@ if __name__ == "__main__":
                                                                           node_interact_times=batch_node_interact_times.repeat(args.train_neg_size),
                                                                           num_neighbors=args.num_neighbors,
                                                                           time_gap=args.time_gap)
-                elif args.model_name in ['DyGFormer', 'QSFormer']:
+                elif args.model_name in ['DyGFormer', 'HOT', 'QSFormer']:
                     # get temporal embedding of source and destination nodes
                     # two Tensors, with shape (batch_size, node_feat_dim)
                     batch_src_node_embeddings, batch_dst_node_embeddings = \
@@ -586,7 +593,7 @@ if __name__ == "__main__":
                 "test metrics": {metric_name: f'{test_metric_dict[metric_name]:.4f}' for metric_name in test_metric_dict},
                 "new node test metrics": {metric_name: f'{new_node_test_metric_dict[metric_name]:.4f}' for metric_name in new_node_test_metric_dict}
             }
-        if args.model_name in ['DyGFormer', 'QSFormer']:
+        if args.model_name in ['DyGFormer', 'HOT', 'QSFormer']:
             result_json['time'] = globals.timer.get_all(epoch=stop_epoch)
             
         result_json = json.dumps(result_json, indent=4)

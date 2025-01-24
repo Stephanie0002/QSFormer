@@ -17,6 +17,7 @@ from models.CAWN import CAWN
 from models.TCL import TCL
 from models.GraphMixer import GraphMixer
 from models.DyGFormer import DyGFormer
+from models.HOT import HOT
 from models.modules import MergeLayer, MergeSingleLayer
 from utils.utils import set_random_seed, convert_to_gpu, get_parameter_sizes, NegativeEdgeSampler
 from utils.new_neighbor_sampler import get_historical_neighbor_sampler, get_neighbor_sampler
@@ -134,6 +135,12 @@ if __name__ == "__main__":
                                              time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
                                              num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout,
                                              max_input_sequence_length=args.max_input_sequence_length, device=args.device)
+            elif args.model_name == 'HOT':
+                dynamic_backbone = HOT(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
+                                       time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, patch_size=args.patch_size,
+                                       num_layers=args.num_layers, num_heads=args.num_heads, dropout=args.dropout, num2hop=args.num2hop,
+                                       block_size=args.block_size, num_state_vectors=args.num_state_vectors, segment_size=args.segment_size,
+                                       max_input_sequence_length=args.max_input_sequence_length, device=args.device)
             elif args.model_name == 'QSFormer':
                 dynamic_backbone = QSFormer(node_raw_features=node_raw_features, edge_raw_features=edge_raw_features, neighbor_sampler=full_neighbor_sampler,
                                             time_feat_dim=args.time_feat_dim, channel_embedding_dim=args.channel_embedding_dim, 

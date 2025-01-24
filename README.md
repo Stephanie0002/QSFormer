@@ -2,9 +2,6 @@
 
 This repository is built for the paper [Quick Sense Temporal Graph Transformer with Efficient Representation Augmentation](https://).
 
-🔔 If you have any questions or suggestions, please feel free to let us know.
-You can directly email Ziqi Huang using the email address ziqi@zju.edu.cn.
-
 ## Benchmark Datasets and Preprocessing
 
 Eight datasets are used in QSFormer, including Wikipedia, Reddit, MOOC, LastFM, Myket, UCI, Flights and Contact.

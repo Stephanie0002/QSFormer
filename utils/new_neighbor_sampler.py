@@ -377,6 +377,52 @@ class NeighborSampler:
 
         return nodes_neighbor_ids_list, nodes_edge_ids_list, nodes_neighbor_times_list
 
+    def get_all_second_hop_neighbors(self, node_ids: np.ndarray, node_interact_times: np.ndarray, max_seq_len, max_2hop):
+        """
+        get historical neighbors of nodes in node_ids at the first hop with max_num_neighbors as the maximal number of neighbors (make the computation feasible)
+        :param node_ids: ndarray, shape (batch_size, ), node ids
+        :param node_interact_times: ndarray, shape (batch_size, ), node interaction times
+        :return:
+        """
+        # three lists to store the first-hop neighbor ids, edge ids and interaction timestamp information, with batch_size as the list length
+        nodes_neighbor_ids_list, nodes_edge_ids_list, nodes_neighbor_times_list = [], [], []
+
+        first_hop_lengths = []
+
+        # get the temporal neighbors at the first hop
+        for idx, (node_id, node_interact_time) in enumerate(zip(node_ids, node_interact_times)):
+            # find neighbors that interacted with node_id before time node_interact_time
+            node_neighbor_ids, node_edge_ids, node_neighbor_times, _ = self.find_neighbors_before(node_id=node_id,
+                                                                                                  interact_time=node_interact_time,
+                                                                                                  return_sampled_probabilities=False)
+            
+            node_neighbor_ids = node_neighbor_ids[(-max_seq_len):]
+            node_edge_ids = node_edge_ids[(-max_seq_len):]
+            node_neighbor_times = node_neighbor_times[(-max_seq_len):]
+
+            first_hop_lengths.append(len(node_neighbor_ids))
+
+            per_batch_nodes = node_neighbor_ids
+            per_batch_edges = node_edge_ids
+            per_batch_times = node_neighbor_times
+
+            if (max_2hop != 0):
+                for idx, (node_neighbor_id, node_neighbor_time, node_edge_id) in enumerate(zip(node_neighbor_ids, node_neighbor_times, node_edge_ids)):
+                    node_neighbor_ids2, node_edge_ids2, node_neighbor_times2, _ = self.find_neighbors_before(node_id=node_neighbor_id,
+                                                                                                            interact_time=node_neighbor_time,
+                                                                                                            return_sampled_probabilities=False)
+
+                    per_batch_nodes = np.append(node_neighbor_ids2[(-max_2hop):], per_batch_nodes)
+                    per_batch_edges = np.append(node_edge_ids2[(-max_2hop):], per_batch_edges)
+                    per_batch_times = np.append(node_neighbor_times2[(-max_2hop):], per_batch_times)
+            
+
+            nodes_neighbor_ids_list.append(per_batch_nodes)
+            nodes_edge_ids_list.append(per_batch_edges)
+            nodes_neighbor_times_list.append(per_batch_times)
+
+        return first_hop_lengths, nodes_neighbor_ids_list, nodes_edge_ids_list, nodes_neighbor_times_list
+
     def reset_random_state(self):
         """
         reset the random state by self.seed
