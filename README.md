@@ -2,6 +2,8 @@
 
 This repository is built for the paper [Quick Sense Temporal Graph Transformer with Efficient Representation Augmentation](https://).
 
+The paper is https://ieeexplore.ieee.org/document/11227707
+
 ## Benchmark Datasets and Preprocessing
 
 Eight datasets are used in QSFormer, including Wikipedia, Reddit, MOOC, LastFM, Myket, UCI, Flights and Contact.
@@ -101,5 +103,6 @@ bash eval_link.sh 0 QSFormer wikipedia
 Please consider citing our paper when using this project.
 
 ```
-To be released.
+Z. Huang, T. Zheng, R. Wang, L. Zhang, W. Huang and X. Wang, "Quick Sense Temporal Graph Transformer with Effective Representation Augmentation," 2025 International Joint Conference on Neural Networks (IJCNN), Rome, Italy, 2025, pp. 1-9, doi: 10.1109/IJCNN64981.2025.11227707. keywords: {Training;Adaptation models;Computational modeling;Scalability;Predictive models;Transformers;Sampling methods;Graph neural networks;Encoding;Optimization;Temporal graphs;graph neural networks;temporal graph transformer},
+
 ```
